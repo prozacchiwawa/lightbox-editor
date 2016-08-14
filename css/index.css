@@ -1,0 +1,32 @@
+body {
+    background-color: black;
+}
+
+.root {
+    position: absolute;
+    display: flex;
+    left: 0;
+    top: 0;
+    width: 1000px;
+    height: 1000px;
+    background-color: #239;
+}
+
+.panel {
+    position: relative;
+    display: flex;
+    background-color: rgba(245,245,245,0.7);
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.panel-selected {
+    background-color: #rgba(255,255,255,0.9);
+}
+
+.dragger {
+    position: absolute;
+    background-color: rgba(0,0,99,0.4);
+}
