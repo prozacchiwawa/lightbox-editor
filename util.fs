@@ -2,8 +2,8 @@ module Util
 
 open Fable.Core
 
-[<Emit("console.log($0,$1)")>]
-let log : string -> 'a -> unit = fun s o -> failwith "JS only"
+[<Emit("{ console.log($0,$1); return $1; }")>]
+let log : string -> 'a -> 'a = fun s o -> failwith "JS only"
 
 [<Emit("('' + $0)")>]
 let toString : 'a -> string = fun a -> failwith "JS only"
@@ -23,3 +23,6 @@ let max d l =
   match l with
   | [] -> d
   | hd :: tl -> List.fold (fun s a -> maxPrim s a) hd tl
+
+[<Emit("Math.abs($0)")>]
+let abs : float -> float = fun a -> failwith "JS only"
