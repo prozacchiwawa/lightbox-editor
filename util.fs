@@ -14,6 +14,9 @@ let minPrim : float -> float -> float = fun a b -> failwith "JS only"
 [<Emit("Math.max($0,$1)")>]
 let maxPrim : float -> float -> float = fun a b -> failwith "JS only"
 
+[<Emit("window.generateId()")>]
+let genId : unit -> string = fun _ -> failwith "JS only"
+
 let min d l =
   match l with
   | [] -> d

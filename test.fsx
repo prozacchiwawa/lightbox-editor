@@ -73,7 +73,8 @@ let init arg =
   }
     
 let between a b c =
-  (Util.abs (c - a)) < (Util.abs (b - a))
+  let interval = Util.abs (b - a) in
+  (Util.abs (c - a)) < interval && (Util.abs (c - b)) < interval
 
 let coordsInside a b c =
   (between a.x b.x c.x) && (between a.y b.y c.y)
@@ -113,9 +114,24 @@ let coordInPanel coords panel =
   let lr = lowerRightPanel panel in
   coordsInside ul lr coords
 
+let coordSubtract a b =
+  { x = a.x - b.x; y = a.y - b.y }
+
+let coordAdd a b =
+  { x = a.x + b.x; y = a.y + b.y }
+
+let rec panelOffset id root =
+  let ul = upperLeftPanel root in
+  if root.id = id then
+    [ { x = ul.x ; y = ul.y } ]
+  else
+    let children = List.concat (List.map (panelOffset id) root.children) in
+    List.map (coordAdd ul) children
+
 let rec panelsFromCoord coords panel =
+  let ul = upperLeftPanel panel in
   let matchingChildPanels =
-    List.concat (List.map (panelsFromCoord coords) panel.children)
+    List.concat (List.map (panelsFromCoord (coordSubtract coords ul)) panel.children)
   in
   let matchingThisPanel =
     if coordInPanel coords panel then
@@ -135,10 +151,45 @@ let update action state =
        else 
          { state with selected = hd.id }
   in
+  let createNewPanel parentCoords dragger =
+    let draggerUL = 
+      { x = Util.min 0. [dragger.start.x;dragger.dend.x]; 
+        y = Util.min 0. [dragger.start.y;dragger.dend.y] 
+      } 
+    in
+    let draggerBR = 
+      { x = Util.max 0. [dragger.start.x;dragger.dend.x];
+        y = Util.max 0. [dragger.start.y;dragger.dend.y] 
+      } 
+    in
+    let finalUL = coordSubtract draggerUL parentCoords in
+    let finalBR = coordSubtract draggerBR parentCoords in
+    { lr = LowGrav (finalUL.x, finalBR.x - finalUL.x) ;
+      tb = LowGrav (finalUL.y, finalBR.y - finalUL.y) ;
+      position = Absolute ;
+      background = "" ;
+      id = Util.genId () ;
+      children = [] 
+    }
+  in
+  let rec addChildWithId id child parent =
+    if parent.id = id then
+      { parent with children = child :: parent.children }
+    else
+      { parent with children = List.map (addChildWithId id child) parent.children }
+  in
+  let createChild dragger =
+    match panelsFromCoord dragger.start state.root with
+    | [] -> state
+    | hd :: tl ->
+       match panelOffset hd.id state.root with
+       | [] -> state
+       | parentCoords :: _ ->
+          { state with root = addChildWithId hd.id (createNewPanel parentCoords dragger) state.root }
   let performDragOp dragger = 
     match (Util.log "PerformDragOp" dragger.action) with
     | Click -> selectPanel dragger.start
-    | Drag -> state
+    | Drag -> createChild dragger
   in
   match (action,state.dragger) with
   | (NoOp,_) -> state
@@ -169,6 +220,11 @@ let update action state =
 let cssPixelPos v =
   String.concat "" [Util.toString v; "px"]
                 
+let panelPositionString p =
+  match p.position with
+  | Relative -> "relative"
+  | Absolute -> "absolute"
+
 let view (html : Msg Html.Html) state =
   let rec viewPanel panel =
     let panelClass = 
@@ -177,8 +233,20 @@ let view (html : Msg Html.Html) state =
       else 
         "panel" 
     in
+    let draggerUL = upperLeftPanel panel in
+    let draggerBR = lowerRightPanel panel in
     html.div
-      [{name = "className"; value = panelClass}]
+      [
+        {
+          name = "className"; value = panelClass};
+          html.style [
+            ("position", panelPositionString panel);
+            ("left", cssPixelPos draggerUL.x);
+            ("top", cssPixelPos draggerUL.y);
+            ("width", cssPixelPos (draggerBR.x - draggerUL.x));
+            ("height", cssPixelPos (draggerBR.y - draggerUL.y))
+          ]
+      ]
       []
       (List.concat 
          [
