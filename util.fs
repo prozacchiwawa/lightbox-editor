@@ -29,3 +29,7 @@ let max d l =
 
 [<Emit("Math.abs($0)")>]
 let abs : float -> float = fun a -> failwith "JS only"
+
+let between a b c =
+  let interval = abs (b - a) in
+  (abs (c - a)) < interval && (abs (c - b)) < interval

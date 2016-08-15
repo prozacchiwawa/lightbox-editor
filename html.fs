@@ -18,6 +18,11 @@ type 'Msg Html =
           VDom.Response list ->
           VDom.VNode list ->
           VDom.VNode ;
+      i :
+          VDom.Property list ->
+          VDom.Response list ->
+          VDom.VNode list ->
+          VDom.VNode ;
       text : string -> VDom.VNode ;
       style : (string * string) list -> VDom.Property;
       onMouseDown : (MouseEvent -> 'Msg) -> VDom.Response;
@@ -50,6 +55,7 @@ let html vdom =
     { div = vdom.vnode "div" ;
       button = vdom.vnode "button" ;
       input = vdom.vnode "input" ;
+      i = vdom.vnode "i" ;
       text = vdom.vtext ;
       style = fun l -> {name = "style"; value = makeCSS l} ;
       onMouseDown = onMouseDown vdom ;
