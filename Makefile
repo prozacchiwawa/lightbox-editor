@@ -6,7 +6,7 @@ clean:
 out:
 	mkdir $@
 
-js/test.js: test.fsx
+js/test.js: test.fsx *.fs
 	fable --projFile $< --outDir js
 
 out/vdomtest.js: js/test.js js/vdominterface.js

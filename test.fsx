@@ -116,7 +116,7 @@ let update action state =
     | Click -> selectPanel dragger.start
     | Drag -> createChild dragger
   in
-  match (action,state.dragger) with
+  match Util.expose "action" (action,state.dragger) with
   | (NoOp,_) -> state
   | (MouseDown (x,y),None) ->
      if x >= 0. && x < 1000. && y >= 0. && y < 1000. then
@@ -144,7 +144,7 @@ let update action state =
      else 
        { state with dragger = Some { dragger with dend = Point.ctor x y } }
   | (ControlMsg (Controls.ChangeBackground bg),_) ->
-     { state with backgroundUrl = bg }
+     { state with backgroundUrl = Util.log "Background" bg }
   | (ControlMsg msg,_) -> 
      { state with dragger = None; ui = Controls.update msg state.ui }
   | _ -> state
@@ -219,30 +219,35 @@ let view (html : Msg Html.Html) state =
     if state.backgroundUrl <> "" then
       [ html.style
           [
-            ("background-image", state.backgroundUrl) ;
+            ("background-image", String.concat "" ["url('";state.backgroundUrl;"')"]) ;
             ("background-repeat", "none") ;
             ("background-position", "center top") ;
-            ("background-size", "cover") ;
+            ("background-size", "contain") ;
           ]
       ]
     else
       []
   in
   html.div
-    (List.concat [ [html.className "root"]; backgroundSpecification ])
-    [ 
-      Html.onMouseDown html (fun evt -> MouseDown (evt.pageX, evt.pageY)) ;
-      Html.onMouseUp html (fun evt -> MouseUp (evt.pageX, evt.pageY)) ;
-      Html.onMouseMove html (fun evt -> MouseMove (evt.pageX, evt.pageY))
-    ]
+    [html.className "app-container"]
+    []
     (List.concat 
        [
+         [ 
+           html.div
+             (List.concat [ [html.className "root"]; backgroundSpecification ])
+             [ 
+               Html.onMouseDown html (fun evt -> MouseDown (evt.pageX, evt.pageY)) ;
+               Html.onMouseUp html (fun evt -> MouseUp (evt.pageX, evt.pageY)) ;
+               Html.onMouseMove html (fun evt -> MouseMove (evt.pageX, evt.pageY))
+             ]
+             [ viewPanel state.root ] ;
+         ] ;
          Controls.view controlHtml state.ui ;
-         visualizeDrag ;
-         [ viewPanel state.root ] ;
+         visualizeDrag
        ]
     )
-    
+
 let main vdom arg =
   { VDom.init = init;
     VDom.update = update;

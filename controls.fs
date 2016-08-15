@@ -27,7 +27,9 @@ let select panel state =
 let update action state =
   match action with
   | ToggleControls ->
-    { state with full = not state.full }
+     { state with full = not state.full }
+  | BackgroundInput bg ->
+     { state with backgroundUrl = bg }
   | _ -> state
 
 let rootView (html : Msg Html) state =
