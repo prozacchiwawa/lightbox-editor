@@ -15,6 +15,7 @@ body {
 .panel {
     position: relative;
     display: flex;
+    overflow: hidden;
     background-color: rgba(245,245,245,0.7);
     left: 0;
     top: 0;
@@ -33,26 +34,38 @@ body {
     z-index: 2;
 }
 
+.control-width {
+    width: 300px;
+}
+
 .control-open {
     position: absolute;
     display: flex;
+    overflow: hidden;
+    flex-direction: column;
     right: 0;
     top: 0;
     font-size: 2vmin;
     padding: 1vmin;
     background-color: white;
     width: 300px;
+    transition: width 0.3s;
+    transition: background-color: 0.3s;
 }
 
 .control-closed {
     position: absolute;
     display: flex;
+    overflow: hidden;
+    flex-direction: column;
     right: 0;
     top: 0;
     font-size: 2vmin;
     padding: 1vmin;
     background-color: #eee;
     width: 15px;
+    transition: width 0.3s;
+    transition: background-color: 0.3s;
 }
 
 .panel-selected.panel-selected {

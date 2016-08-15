@@ -26,6 +26,8 @@ type 'Msg Html =
           VDom.VNode ;
       text : string -> VDom.VNode ;
       style : (string * string) list -> VDom.Property;
+      className : string -> VDom.Property;
+      inputValue : string -> VDom.Property;
     }
 
 let makeCSS l =
@@ -51,7 +53,12 @@ let onMouseClick html f =
   { name = "click" ; 
     response = fun evt -> vdom.post (f (VDom.toMouseEvent evt)) 
   }
-
+let onInput html f =
+  let vdom = html.vdom in
+  { name = "input" ;
+    response = fun evt -> vdom.post (f (VDom.toInputEvent evt))
+  }
+    
 let html vdom =
   { vdom = vdom ;
     div = vdom.vnode "div" ;
@@ -60,6 +67,8 @@ let html vdom =
     i = vdom.vnode "i" ;
     text = vdom.vtext ;
     style = fun l -> {name = "style"; value = makeCSS l} ;
+    className = fun c -> {name = "className"; value = c} ;
+    inputValue = fun v -> {name = "value"; value = v} ;
   }
 
 let map f someHtml =

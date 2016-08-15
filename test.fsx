@@ -30,6 +30,7 @@ type State =
     palette : Map<string, Color> ;
     root : Panel ;
     selected : string ;
+    backgroundUrl : string ;
     dragmode : DragMode ;
     dragger : Dragger option ;
     ui : UI ;
@@ -45,20 +46,24 @@ type Msg =
   | ControlMsg of Controls.Msg
                              
 let init arg =
+  let root = 
+    { 
+      Panel.position = Panel.Absolute ;
+      Panel.background = "" ;
+      Panel.lr = Panel.MidCover (0.,1000.) ;
+      Panel.tb = Panel.MidCover (0.,1000.) ;
+      Panel.id = "root" ;
+      Panel.children = [] ;
+    }
+  in
   { 
     palette = Map<string, Color> [] ;
     selected = "root" ;
-    root = { 
-        Panel.position = Panel.Absolute ;
-        Panel.background = "" ;
-        Panel.lr = Panel.MidCover (0.,1000.) ;
-        Panel.tb = Panel.MidCover (0.,1000.) ;
-        Panel.id = "root" ;
-        Panel.children = [] ;
-      } ;
+    backgroundUrl = "" ;
+    root = root ;
     dragger = None ;
     dragmode = Select ;
-    ui = { full = false }
+    ui = Controls.init root
   }
 
 let update action state =
@@ -67,9 +72,9 @@ let update action state =
     | [] -> state
     | hd :: tl -> 
        if hd.id = state.selected then
-         { state with selected = "" }
+         { state with selected = "" ; ui = Controls.select state.root state.ui }
        else 
-         { state with selected = hd.id }
+         { state with selected = hd.id ; ui = Controls.select hd state.ui }
   in
   let createNewPanel parentCoords dragger =
     let draggerUL = 
@@ -114,7 +119,10 @@ let update action state =
   match (action,state.dragger) with
   | (NoOp,_) -> state
   | (MouseDown (x,y),None) ->
-     { state with dragger = Some { start = Point.ctor x y; dend = Point.ctor x y; action = Click } }
+     if x >= 0. && x < 1000. && y >= 0. && y < 1000. then
+       { state with dragger = Some { start = Point.ctor x y; dend = Point.ctor x y; action = Click } }
+     else 
+       state
   | (MouseUp (x,y),Some dragger) ->
      { performDragOp dragger with dragger = None }
   | (MouseMove (x,y),Some dragger) ->
@@ -135,6 +143,8 @@ let update action state =
        { state with dragger = Some { dragger with dend = Point.ctor x y; action = Drag } }
      else 
        { state with dragger = Some { dragger with dend = Point.ctor x y } }
+  | (ControlMsg (Controls.ChangeBackground bg),_) ->
+     { state with backgroundUrl = bg }
   | (ControlMsg msg,_) -> 
      { state with dragger = None; ui = Controls.update msg state.ui }
   | _ -> state
@@ -154,9 +164,9 @@ let view (html : Msg Html.Html) state =
     let draggerBR = Panel.lowerRight panel in
     html.div
       [
-        {
-          name = "className"; value = panelClass};
-          html.style [
+        html.className panelClass ;
+        html.style 
+          [
             ("position", Panel.positionString panel);
             ("left", cssPixelPos draggerUL.x);
             ("top", cssPixelPos draggerUL.y);
@@ -187,7 +197,7 @@ let view (html : Msg Html.Html) state =
            (Util.max 0. [dragger.start.y;dragger.dend.y])
        in
        [ html.div
-           [ {name = "className"; value = "dragger" };
+           [ html.className "dragger" ;
              html.style [
                  ("left", cssPixelPos draggerUL.x);
                  ("top", cssPixelPos draggerUL.y);
@@ -205,8 +215,21 @@ let view (html : Msg Html.Html) state =
   let controlHtml : Controls.Msg Html.Html =
     Html.map mapControlMsg html
   in
+  let backgroundSpecification =
+    if state.backgroundUrl <> "" then
+      [ html.style
+          [
+            ("background-image", state.backgroundUrl) ;
+            ("background-repeat", "none") ;
+            ("background-position", "center top") ;
+            ("background-size", "cover") ;
+          ]
+      ]
+    else
+      []
+  in
   html.div
-    [{name = "className"; value = "root"}]
+    (List.concat [ [html.className "root"]; backgroundSpecification ])
     [ 
       Html.onMouseDown html (fun evt -> MouseDown (evt.pageX, evt.pageY)) ;
       Html.onMouseUp html (fun evt -> MouseUp (evt.pageX, evt.pageY)) ;

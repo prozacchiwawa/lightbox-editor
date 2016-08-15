@@ -5,9 +5,14 @@ open Fable.Core
 type VNode = Unused0
 type Event = Unused1
 type MouseEvent = { pageX : float; pageY : float }
+type InputEventTarget = { value : string }
+type InputEvent = { target : InputEventTarget }
 
 [<Emit("$0")>]
 let toMouseEvent : Event -> MouseEvent = fun e -> failwith "JS only"
+
+[<Emit("$0")>]
+let toInputEvent : Event -> InputEvent = fun e -> failwith "JS only"
 
 type Property = { name : string; value : string }
 type Response = { name : string; response : Event -> unit }

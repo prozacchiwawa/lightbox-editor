@@ -5,6 +5,9 @@ open Fable.Core
 [<Emit("{ console.log($0,$1); return $1; }")>]
 let log : string -> 'a -> 'a = fun s o -> failwith "JS only"
 
+[<Emit("{ console.log($0,JSON.stringify($1)); return $1; }")>]
+let expose : string -> 'a -> 'a = fun s o -> failwith "JS only"
+
 [<Emit("('' + $0)")>]
 let toString : 'a -> string = fun a -> failwith "JS only"
 
