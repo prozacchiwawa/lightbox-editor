@@ -90,7 +90,7 @@ function run(element, main, pass) {
     var rootElement = null;
     var oldTree = null;
     var msgStream = Bacon.Bus();
-    var program = main({ vnode: vnode, vtext, vtext, post: post, stream: msgStream });
+    var program = main({ vnode: vnode, vtext, vtext, post: post(msgStream) });
     // Bacon's scan method is used here like foldp on a signal, taking an init
     // state and calling update for each message.
     var stateStream = msgStream.scan(program.init(pass), function(state,msg) {

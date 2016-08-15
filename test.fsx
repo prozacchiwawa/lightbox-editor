@@ -8,9 +8,11 @@ open Fable.Import.Browser
 #load "html.fs"
 #load "point.fs"
 #load "panel.fs"
+#load "controls.fs"
 
 type Point = Point.Point
 type Panel = Panel.Panel
+type UI = Controls.UI
 
 type Color = { r : int ; b : int ; g : int ; a : int }
                
@@ -23,11 +25,6 @@ type DragAction =
 
 type Dragger = { start : Point; dend : Point; action : DragAction } 
                  
-type UI =
-  {
-    full : bool ;
-  }
-    
 type State = 
   { 
     palette : Map<string, Color> ;
@@ -45,7 +42,7 @@ type Msg =
   | MouseDown of float * float
   | MouseUp of float * float
   | MouseMove of float * float
-  | ToggleControls
+  | ControlMsg of Controls.Msg
                              
 let init arg =
   { 
@@ -138,8 +135,8 @@ let update action state =
        { state with dragger = Some { dragger with dend = Point.ctor x y; action = Drag } }
      else 
        { state with dragger = Some { dragger with dend = Point.ctor x y } }
-  | (ToggleControls,_) -> 
-     { state with dragger = None; ui = { state.ui with full = not state.ui.full } }
+  | (ControlMsg msg,_) -> 
+     { state with dragger = None; ui = Controls.update msg state.ui }
   | _ -> state
          
 let cssPixelPos v =
@@ -202,36 +199,22 @@ let view (html : Msg Html.Html) state =
            []
        ]
   in
-  let controlClass =
-    if state.ui.full then
-      "control-open"
-    else
-      "control-closed"
+  let mapControlMsg : (Controls.Msg -> Msg) = 
+    fun m -> ControlMsg m
   in
-  let viewControls =
-    [
-      html.div
-        [ {name = "className"; value = "control-toggle"} ]
-        [ html.onMouseClick (fun evt -> ToggleControls) ]
-        [ 
-          html.i
-              [ {name = "className"; value = "fa fa-bars"} ;
-                {name = "aria-hidden"; value = "true"} ] [] [] ;
-        ] ;
-        html.div
-        [ {name = "className"; value = controlClass} ] [] []
-    ]
+  let controlHtml : Controls.Msg Html.Html =
+    Html.map mapControlMsg html
   in
   html.div
     [{name = "className"; value = "root"}]
     [ 
-      html.onMouseDown (fun evt -> MouseDown (evt.pageX, evt.pageY)) ;
-      html.onMouseUp (fun evt -> MouseUp (evt.pageX, evt.pageY)) ;
-      html.onMouseMove (fun evt -> MouseMove (evt.pageX, evt.pageY))
+      Html.onMouseDown html (fun evt -> MouseDown (evt.pageX, evt.pageY)) ;
+      Html.onMouseUp html (fun evt -> MouseUp (evt.pageX, evt.pageY)) ;
+      Html.onMouseMove html (fun evt -> MouseMove (evt.pageX, evt.pageY))
     ]
     (List.concat 
        [
-         viewControls ;
+         Controls.view controlHtml state.ui ;
          visualizeDrag ;
          [ viewPanel state.root ] ;
        ]
