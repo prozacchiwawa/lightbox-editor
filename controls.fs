@@ -25,6 +25,8 @@ type UI =
     dirtyPanel : bool ;
   }
 
+let foldInto f list init = List.fold f init list
+
 let makeEditors panel =
   let ul = Panel.upperLeft panel in
   let lr = Panel.lowerRight panel in
@@ -35,15 +37,32 @@ let makeEditors panel =
           ("numeric-input-good", "numeric-input-bad")
         )
   in
-  List.fold 
-    (fun editors (name,value) -> Input.create name (createEditor name value) editors)
-    (Input.init ())
-    [
-      ("Left", Util.toString ul.x);
-      ("Top", Util.toString ul.y);
-      ("Right", Util.toString lr.x);
-      ("Bottom", Util.toString lr.y);
-    ]
+  let createSelector name value vlist =
+    new InputSelector(
+          value,
+          vlist
+        )
+  in
+  (Input.init ()) |>
+    foldInto
+      (fun editors (name,value) -> 
+        Input.create name (createEditor name value) editors
+      )
+      [
+        ("Left", Util.toString ul.x);
+        ("Top", Util.toString ul.y);
+        ("Right", Util.toString lr.x);
+        ("Bottom", Util.toString lr.y);
+      ] |>
+    foldInto
+      (fun editors (name,value,vlist) -> 
+        Input.create name (createSelector name value (new Set<string>(vlist))) editors
+      )
+      [
+        ("Horizontal Pos", Panel.xAxisPositionString panel.lr, List.map Panel.xAxisPositionString Panel.gravityList);
+        ("Vertical Pos", Panel.yAxisPositionString panel.tb, List.map Panel.yAxisPositionString Panel.gravityList);
+        ("CSS Position", Panel.positionString panel.position, List.map Panel.positionString Panel.positionList)
+      ]
     
 let init panel = 
   { full = false ; 

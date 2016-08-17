@@ -173,7 +173,7 @@ let view (html : Msg Html.Html) state =
         html.className panelClass ;
         html.style 
           [
-            ("position", Panel.positionString panel);
+            ("position", Panel.positionString panel.position);
             ("left", cssPixelPos draggerUL.x);
             ("top", cssPixelPos draggerUL.y);
             ("width", cssPixelPos (draggerBR.x - draggerUL.x));

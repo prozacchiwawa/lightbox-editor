@@ -34,7 +34,25 @@ type InputEditor(currentValue : string, good : string -> bool, renderClass : str
             [Html.onInput html (fun evt -> InputValueChanged (name, evt.target.value))]
             []
         ]
-        
+  
+type InputSelector(currentValue : string, valueList : Set<string>) =
+  interface EditorInstance with
+    member self.currentValue () = currentValue
+    member self.update sv = new InputSelector(sv, valueList) :> EditorInstance
+    member self.good str = Set.contains str valueList
+    member self.view html name =
+      html.div
+        [html.className "selector-container"]
+        []
+        [
+          html.select
+            [] []
+            (valueList |> 
+               Set.toList |> 
+               List.map 
+                 (fun v -> html.option (if currentValue = v then [html.attribute "selected" "true"] else []) [] [html.text v]))
+        ]
+
 type EditorSet =
   {
     editors : Map<string, EditorInstance> ;

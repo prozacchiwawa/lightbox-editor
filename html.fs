@@ -24,7 +24,18 @@ type 'Msg Html =
           VDom.Response list ->
           VDom.VNode list ->
           VDom.VNode ;
+      select : 
+          VDom.Property list ->
+          VDom.Response list ->
+          VDom.VNode list ->
+          VDom.VNode ;
+      option :
+          VDom.Property list ->
+          VDom.Response list ->
+          VDom.VNode list ->
+          VDom.VNode ;
       text : string -> VDom.VNode ;
+      attribute : string -> string -> VDom.Property;
       style : (string * string) list -> VDom.Property;
       className : string -> VDom.Property;
       inputValue : string -> VDom.Property;
@@ -65,7 +76,10 @@ let html vdom =
     button = vdom.vnode "button" ;
     input = vdom.vnode "input" ;
     i = vdom.vnode "i" ;
+    select = vdom.vnode "select" ;
+    option = vdom.vnode "option" ;
     text = vdom.vtext ;
+    attribute = fun n v -> { name = n; value = v } ;
     style = fun l -> {name = "style"; value = makeCSS l} ;
     className = fun c -> {name = "className"; value = c} ;
     inputValue = fun v -> {name = "value"; value = v} ;

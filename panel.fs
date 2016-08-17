@@ -78,7 +78,7 @@ let rec fromCoord coords panel =
   List.concat [matchingChildPanels; matchingThisPanel]
 
 let positionString p =
-  match p.position with
+  match p with
   | Relative -> "relative"
   | Absolute -> "absolute"
 
@@ -112,3 +112,17 @@ let setBottom r p =
   | LowGrav (l,w) -> { p with tb = LowGrav (l, r - l) }
   | HighGrav (w,r_) -> { p with tb = HighGrav (w + (r_ - r),r) }
 
+let xAxisPositionString a =
+  match a with
+  | MidCover _ -> "left <-> right"
+  | LowGrav _ -> "left -> width"
+  | HighGrav _ -> "width <- right"
+
+let yAxisPositionString a =
+  match a with
+  | MidCover _ -> "top <-> bottom"
+  | LowGrav _ -> "top -> height"
+  | HighGrav _ -> "height <- bottom"
+
+let positionList = [ Absolute ; Relative ]
+let gravityList = [ MidCover (0.,0.); LowGrav (0.,0.); HighGrav (0.,0.) ]
