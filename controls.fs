@@ -56,12 +56,16 @@ let makeEditors panel =
       ] |>
     foldInto
       (fun editors (name,value,vlist) -> 
-        Input.create name (createSelector name value (new Set<string>(vlist))) editors
+        let selector = createSelector name value (new Set<string>(vlist)) in
+        Input.create name selector editors
       )
       [
-        ("Horizontal Pos", Panel.xAxisPositionString panel.lr, List.map Panel.xAxisPositionString Panel.gravityList);
-        ("Vertical Pos", Panel.yAxisPositionString panel.tb, List.map Panel.yAxisPositionString Panel.gravityList);
-        ("CSS Position", Panel.positionString panel.position, List.map Panel.positionString Panel.positionList)
+        ("Horizontal Pos", 
+         Panel.xAxisPositionString panel.lr,
+         List.map Panel.xAxisPositionString Panel.gravityList);
+        ("Vertical Pos",
+         Panel.yAxisPositionString panel.tb,
+         List.map Panel.yAxisPositionString Panel.gravityList);
       ]
     
 let init panel = 
@@ -75,12 +79,23 @@ let init panel =
 let select panel state =
   { state with focused = panel ; editors = makeEditors panel }
 
-let updatePanelWithValue name value panel =
-  match (name,value) with
-  | ("Left",Some v) -> Panel.setLeft v panel
-  | ("Right",Some v) -> Panel.setRight v panel
-  | ("Top",Some v) -> Panel.setTop v panel
-  | ("Bottom",Some v) -> Panel.setBottom v panel
+let updatePanelWithValue name current value panel =
+  match Util.expose "updatePanelWithValue" (name,current,value) with
+  | ("Left",_,Some v) -> Panel.setLeft v panel
+  | ("Right",_,Some v) -> Panel.setRight v panel
+  | ("Top",_,Some v) -> Panel.setTop v panel
+  | ("Bottom",_,Some v) -> Panel.setBottom v panel
+  | ("Horizontal Pos",cv,_) -> 
+     let ul = Panel.upperLeft panel in
+     let lr = Panel.lowerRight panel in
+     let measure = Panel.xAxisStringToGravity cv ul.x lr.x in
+     Panel.setLRMeasure measure panel
+  | ("Vertical Pos",cv,_) ->
+     let ul = Panel.upperLeft panel in
+     let lr = Panel.lowerRight panel in
+     let measure = Panel.yAxisStringToGravity cv ul.y lr.y in
+     Panel.setTBMeasure measure panel
+  | _ -> panel
     
 let updatePanelFromEditor state =
   { state with
@@ -88,8 +103,10 @@ let updatePanelFromEditor state =
     focused = 
       List.fold 
         (fun panel ((name,editor) : (string * Input.EditorInstance)) ->
-          let v = Util.parseFloat (editor.currentValue ()) in
-          updatePanelWithValue name v panel)
+          let cv = Util.log "cv" (editor.currentValue ()) in
+          let v = Util.log "v" (Util.parseFloat cv) in
+          updatePanelWithValue (Util.log "name" name) cv v panel
+        )
         state.focused
         (Input.map (fun n v -> (n,v)) state.editors)
   }

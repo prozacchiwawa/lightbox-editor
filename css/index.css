@@ -5,10 +5,20 @@ body {
 .root {
     position: absolute;
     display: flex;
+    overflow: auto;
     left: 0;
     top: 0;
     width: 1000px;
     height: 1000px;
+}
+
+.root-container {
+    position: absolute;
+    overflow: auto;
+    left: 0;
+    top: 0;
+    right: 300px;
+    bottom: 0;
 }
 
 .app-container {
@@ -26,7 +36,7 @@ body {
     position: relative;
     display: flex;
     overflow: hidden;
-    background-color: rgba(245,245,245,0.7);
+    background-color: rgba(245,245,245,0.3);
     left: 0;
     top: 0;
     width: 100%;
@@ -35,6 +45,12 @@ body {
 
 .panel-tree-row {
     padding-left: 1vmin;
+}
+
+.panel-hide-layout {
+    position: absolute;
+    left: 0;
+    top: 0;
 }
 
 .control-toggle {
@@ -85,7 +101,7 @@ body {
 }
 
 .panel-selected.panel-selected {
-    background-color: rgba(255,255,255,0.9);
+    background-color: rgba(255,255,255,0.35);
 }
 
 .dragger {

@@ -69,6 +69,11 @@ let onInput html f =
   { name = "input" ;
     response = fun evt -> vdom.post (f (VDom.toInputEvent evt))
   }
+let onSelectChange html f =
+  let vdom = html.vdom in
+  { name = "change" ;
+    response = fun evt -> vdom.post (f (VDom.toSelectEvent evt))
+  }
     
 let html vdom =
   { vdom = vdom ;

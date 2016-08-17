@@ -4,9 +4,9 @@ open Fable.Core
 open Fable.Import.Browser
 
 #load "util.fs"
+#load "point.fs"
 #load "vdom.fs"
 #load "html.fs"
-#load "point.fs"
 #load "panel.fs"
 #load "input.fs"
 #load "controls.fs"
@@ -183,7 +183,12 @@ let view (html : Msg Html.Html) state =
       []
       (List.concat 
          [
-           [html.text (String.concat " " ["PANEL:";panel.id])];
+           [
+             html.div
+               [html.className "panel-hide-layout"]
+               []
+               [html.text (String.concat " " ["PANEL:";panel.id])]
+           ];
            List.map viewPanel panel.children
          ]
       )
@@ -241,13 +246,17 @@ let view (html : Msg Html.Html) state =
        [
          [ 
            html.div
-             (List.concat [ [html.className "root"]; backgroundSpecification ])
-             [ 
-               Html.onMouseDown html (fun evt -> MouseDown (evt.pageX, evt.pageY)) ;
-               Html.onMouseUp html (fun evt -> MouseUp (evt.pageX, evt.pageY)) ;
-               Html.onMouseMove html (fun evt -> MouseMove (evt.pageX, evt.pageY))
-             ]
-             [ viewPanel state.root ] ;
+             [html.className "root-container"] []
+             [
+               html.div
+                 (List.concat [ [html.className "root"]; backgroundSpecification ])
+                 [ 
+                   Html.onMouseDown html (fun evt -> MouseDown (evt.pageX, evt.pageY)) ;
+                   Html.onMouseUp html (fun evt -> MouseUp (evt.pageX, evt.pageY)) ;
+                   Html.onMouseMove html (fun evt -> MouseMove (evt.pageX, evt.pageY))
+                 ]
+                 [ viewPanel state.root ] ;
+             ] ;
          ] ;
          Controls.view controlHtml state.ui ;
          visualizeDrag

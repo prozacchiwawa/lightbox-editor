@@ -1,23 +1,35 @@
 module VDom
 
 open Fable.Core
+open Point
+
+type Point = Point.Point
 
 type VNode = Unused0
 type Event = Unused1
-type MouseEvent = { pageX : float; pageY : float }
-type InputEventTarget = { value : string }
+type Element = Unused2
+type MouseEvent = { pageX : float; pageY : float; target : Element }
+type InputEventTarget = { value : string; }
 type InputEvent = { target : InputEventTarget }
+type SelectEventTarget = { selectedIndex : int }
+type SelectEvent = { target : SelectEventTarget }
 
-[<Emit("$0")>]
+[<Emit("{ ($0).preventDefault(); return $0; }")>]
 let toMouseEvent : Event -> MouseEvent = fun e -> failwith "JS only"
 
 [<Emit("$0")>]
 let toInputEvent : Event -> InputEvent = fun e -> failwith "JS only"
 
+[<Emit("$0")>]
+let toSelectEvent : Event -> SelectEvent = fun e -> failwith "JS only"
+
+[<Emit("$0")>]
+let elementDimensions : Element -> (Point * Point) = fun e -> failwith "JS only"
+
 type Property = { name : string; value : string }
 type Response = { name : string; response : Event -> unit }
 
-type 'msg MsgStream = Unused2
+type 'msg MsgStream = Unused3
 
 type 'msg VDom =
     { vnode  : string -> Property list -> Response list -> VNode list -> VNode;

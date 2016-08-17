@@ -36,6 +36,7 @@ type InputEditor(currentValue : string, good : string -> bool, renderClass : str
         ]
   
 type InputSelector(currentValue : string, valueList : Set<string>) =
+  let selectList = valueList |> Set.toList in
   interface EditorInstance with
     member self.currentValue () = currentValue
     member self.update sv = new InputSelector(sv, valueList) :> EditorInstance
@@ -46,11 +47,23 @@ type InputSelector(currentValue : string, valueList : Set<string>) =
         []
         [
           html.select
-            [] []
-            (valueList |> 
-               Set.toList |> 
+            [] 
+            [
+              Html.onSelectChange 
+                html 
+                (fun evt -> InputValueChanged (name, Util.listNth "" selectList evt.target.selectedIndex))
+            ]
+            (selectList |> 
                List.map 
-                 (fun v -> html.option (if currentValue = v then [html.attribute "selected" "true"] else []) [] [html.text v]))
+                 (fun v -> 
+                   html.option 
+                     (if currentValue = v then 
+                        [html.attribute "selected" "true"] 
+                      else 
+                        []
+                     ) [] [html.text v]
+                 )
+            )
         ]
 
 type EditorSet =

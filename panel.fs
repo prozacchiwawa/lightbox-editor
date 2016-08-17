@@ -126,3 +126,44 @@ let yAxisPositionString a =
 
 let positionList = [ Absolute ; Relative ]
 let gravityList = [ MidCover (0.,0.); LowGrav (0.,0.); HighGrav (0.,0.) ]
+
+let stringToPosition s =
+  let candidates =
+    positionList |>
+      List.map (fun p -> (positionString p, p)) |>
+      List.filter (fun (ps,p) -> ps = s)
+  in
+  match candidates with
+  | (hs,hp) :: tl -> hp
+  | [] -> Absolute
+
+let setPosition pos panel =
+  { panel with position = pos }
+
+let xAxisStringToGravity s left right =
+  let candidates =
+    gravityList |>
+      List.map (fun p -> (yAxisPositionString p, p)) |>
+      List.filter (fun (ps,p) -> ps = s)
+  in
+  match candidates with
+  | (_,MidCover _) :: tl -> MidCover (left, right)
+  | (_,HighGrav _) :: tl -> HighGrav (right - left, right)
+  | _ :: tl -> LowGrav (left, right - left)
+
+let yAxisStringToGravity s top bottom =
+  let candidates =
+    gravityList |>
+      List.map (fun p -> (yAxisPositionString p, p)) |>
+      List.filter (fun (ps,p) -> ps = s)
+  in
+  match candidates with
+  | (_,MidCover _) :: tl -> MidCover (top, bottom)
+  | (_,HighGrav _) :: tl -> HighGrav (bottom - top, bottom)
+  | _ :: tl -> LowGrav (top, bottom - top)
+
+let setLRMeasure lr panel =
+  { panel with lr = lr }
+
+let setTBMeasure tb panel =
+  { panel with tb = tb }

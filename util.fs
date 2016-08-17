@@ -46,3 +46,9 @@ let parseFloat_ : string -> float = fun f -> failwith "JS only"
 let parseFloat str =
   let flt = parseFloat_ str in
   if isNaN flt then None else Some flt
+
+let rec listNth d l n =
+  match expose "nth" (d,l,n) with
+  | (_,hd :: tl,0) -> hd
+  | (d,[],0) -> d
+  | (_,hd :: tl,n) -> listNth d tl (n - 1)
