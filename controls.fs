@@ -28,12 +28,12 @@ type UI =
 let makeEditors panel =
   let ul = Panel.upperLeft panel in
   let lr = Panel.lowerRight panel in
-  let createEditor name value =
-    {
-      currentValue = value ;
-      good = fun value -> (Util.parseFloat value) <> None ;
-      renderClass = ("numeric-input-good", "numeric-input-bad")
-    }
+  let createEditor name value = 
+    new InputEditor(
+          value, 
+          (fun value -> (Util.parseFloat value) <> None), 
+          ("numeric-input-good", "numeric-input-bad")
+        )
   in
   List.fold 
     (fun editors (name,value) -> Input.create name (createEditor name value) editors)
@@ -68,8 +68,8 @@ let updatePanelFromEditor state =
     dirtyPanel = true ;
     focused = 
       List.fold 
-        (fun panel (name,editor) ->
-          let v = Util.parseFloat editor.currentValue in
+        (fun panel ((name,editor) : (string * Input.EditorInstance)) ->
+          let v = Util.parseFloat (editor.currentValue ()) in
           updatePanelWithValue name v panel)
         state.focused
         (Input.map (fun n v -> (n,v)) state.editors)
@@ -115,14 +115,14 @@ let rec panelChildren (html : Msg Html) panel =
     )
 
 let panelControls (html : Msg Html) state panel =
-  let labeledInput name inp =
+  let labeledInput name (inp : Input.EditorInstance) =
     [
       html.div
         [html.className "control-row"] []
         [html.text name];
       html.div
         [html.className "control-row"] []
-        [Input.view (Html.map (fun msg -> EditorMsg msg) html) name inp]
+        [inp.view (Html.map (fun msg -> EditorMsg msg) html) name]
     ]
   in
   let inputs =

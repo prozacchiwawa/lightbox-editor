@@ -1,6 +1,7 @@
 module Input
 
 open Util
+open VDom
 open Html
 
 type Msg =
@@ -8,12 +9,32 @@ type Msg =
   | InputValueChanged of string * string
 
 type EditorInstance =
-  {
-    currentValue : string ;
-    good : string -> bool ;
-    renderClass : (string * string) ;
-  }
+  abstract member currentValue : unit -> string
+  abstract member update : string -> EditorInstance
+  abstract member good : string -> bool
+  abstract member view : Msg Html -> string -> VDom.VNode
 
+type InputEditor(currentValue : string, good : string -> bool, renderClass : string * string) =
+  interface EditorInstance with
+    member self.currentValue () = currentValue
+    member self.update sv = new InputEditor(sv, good, renderClass) :> EditorInstance
+    member self.good str = good str
+    member self.view html name =
+      let classOfEditor =
+        match (good currentValue, renderClass) with
+        | (true, (className, _)) -> className
+        | (false, (_, className)) -> className
+      in
+      html.div
+        [html.className classOfEditor]
+        []
+        [
+          html.input 
+            [html.inputValue currentValue]
+            [Html.onInput html (fun evt -> InputValueChanged (name, evt.target.value))]
+            []
+        ]
+        
 type EditorSet =
   {
     editors : Map<string, EditorInstance> ;
@@ -32,27 +53,11 @@ let update action editors =
        let editor = Map.find name editors.editors in
        { editors with 
          editors = 
-           Map.add name { editor with currentValue = value } editors.editors
+           Map.add name (editor.update value) editors.editors
        }
      else
        editors
   | _ -> editors
-
-let view html name editor =
-  let classOfEditor =
-    match (editor.good editor.currentValue, editor.renderClass) with
-    | (true, (className, _)) -> className
-    | (false, (_, className)) -> className
-  in
-  html.div
-    [html.className classOfEditor]
-    []
-    [
-      html.input 
-        [html.inputValue editor.currentValue]
-        [Html.onInput html (fun evt -> InputValueChanged (name, evt.target.value))]
-        []
-    ]
 
 let map f editors =
   editors.editors |> Map.toList |> List.map (fun (n,v) -> f n v)
