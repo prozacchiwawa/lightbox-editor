@@ -81,3 +81,34 @@ let positionString p =
   match p.position with
   | Relative -> "relative"
   | Absolute -> "absolute"
+
+let rec replace p r =
+  if r.id = p.id then
+    p
+  else
+    { r with children = List.map (replace p) r.children }
+
+let setLeft l p =
+  match p.lr with
+  | MidCover (l_,r) -> { p with lr = MidCover (l,r) }
+  | LowGrav (l_,w) -> { p with lr = LowGrav (l,(w + l_ - l)) }
+  | HighGrav (w,r) -> { p with lr = HighGrav (l - r,r) }
+
+let setRight r p =
+  match p.lr with
+  | MidCover (l_,r_) -> { p with lr = MidCover (l_,r) }
+  | LowGrav (l,w) -> { p with lr = LowGrav (l, r - l) }
+  | HighGrav (w,r_) -> { p with lr = HighGrav (w + (r_ - r),r) }
+
+let setTop l p =
+  match p.tb with
+  | MidCover (l_,r) -> { p with tb = MidCover (l,r) }
+  | LowGrav (l_,w) -> { p with tb = LowGrav (l,(w + l_ - l)) }
+  | HighGrav (w,r) -> { p with tb = HighGrav (l - r,r) }
+
+let setBottom r p =
+  match p.tb with
+  | MidCover (l_,r_) -> { p with tb = MidCover (l_,r) }
+  | LowGrav (l,w) -> { p with tb = LowGrav (l, r - l) }
+  | HighGrav (w,r_) -> { p with tb = HighGrav (w + (r_ - r),r) }
+

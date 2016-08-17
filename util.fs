@@ -36,3 +36,13 @@ let abs : float -> float = fun a -> failwith "JS only"
 let between a b c =
   let interval = abs (b - a) in
   (abs (c - a)) < interval && (abs (c - b)) < interval
+
+[<Emit("isNaN($0)")>]
+let isNaN : float -> bool = fun f -> failwith "JS only"
+
+[<Emit("window.parseFloat($0)")>]
+let parseFloat_ : string -> float = fun f -> failwith "JS only"
+
+let parseFloat str =
+  let flt = parseFloat_ str in
+  if isNaN flt then None else Some flt

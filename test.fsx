@@ -8,6 +8,7 @@ open Fable.Import.Browser
 #load "html.fs"
 #load "point.fs"
 #load "panel.fs"
+#load "input.fs"
 #load "controls.fs"
 
 type Point = Point.Point
@@ -146,7 +147,12 @@ let update action state =
   | (ControlMsg (Controls.ChangeBackground bg),_) ->
      { state with backgroundUrl = Util.log "Background" bg }
   | (ControlMsg msg,_) -> 
-     { state with dragger = None; ui = Controls.update msg state.ui }
+     let s1 = { state with dragger = None; ui = Controls.update msg state.ui } in
+     if s1.ui.dirtyPanel then
+       let (panel,ui) = Controls.takeUpdate s1.ui in
+       { s1 with ui = ui ; root = Panel.replace panel s1.root }
+     else
+       s1
   | _ -> state
          
 let cssPixelPos v =

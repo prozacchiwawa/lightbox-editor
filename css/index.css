@@ -33,6 +33,10 @@ body {
     height: 100%;
 }
 
+.panel-tree-row {
+    padding-left: 1vmin;
+}
+
 .control-toggle {
     position: absolute;
     display: flex;
@@ -87,4 +91,12 @@ body {
 .dragger {
     position: absolute;
     background-color: rgba(0,0,99,0.4);
+}
+
+.numeric-input-bad input {
+    color: #900;
+}
+
+.numeric-input-good input {
+    color: #030;
 }
