@@ -14,8 +14,14 @@ type InputEvent = { target : InputEventTarget }
 type SelectEventTarget = { selectedIndex : int }
 type SelectEvent = { target : SelectEventTarget }
 
-[<Emit("{ ($0).preventDefault(); return $0; }")>]
+[<Emit("$0")>]
 let toMouseEvent : Event -> MouseEvent = fun e -> failwith "JS only"
+
+[<Emit("($0).preventDefault();")>]
+let preventDefault : 'a -> unit = fun e -> failwith "JS only"
+
+[<Emit("($0).stopPropagation();")>]
+let stopPropagation : 'a -> unit = fun e -> failwith "JS only"
 
 [<Emit("$0")>]
 let toInputEvent : Event -> InputEvent = fun e -> failwith "JS only"

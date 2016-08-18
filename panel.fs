@@ -83,6 +83,18 @@ let rec fromCoord coords panel =
   in
   List.concat [matchingChildPanels; matchingThisPanel]
 
+let rec fromId id panel =
+  let matchingChildPanels =
+    List.concat (List.map (fromId id) panel.children)
+  in
+  let matchingThisPanel =
+    if id = panel.id then
+      [ panel ]
+    else 
+      []
+  in
+  List.concat [matchingChildPanels; matchingThisPanel]
+
 let positionString p =
   match p with
   | Relative -> "relative"

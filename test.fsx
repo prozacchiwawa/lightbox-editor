@@ -148,6 +148,11 @@ let update action state =
        { state with dragger = Some { dragger with dend = Point.ctor x y } }
   | (ControlMsg (Controls.ChangeBackground bg),_) ->
      { state with backgroundUrl = Util.log "Background" bg }
+  | (ControlMsg (Controls.SelectPanel pid),_) ->
+     match Panel.fromId pid state.root with
+     | [] -> state
+     | hd :: tl -> 
+        { state with selected = pid ; ui = Controls.select hd state.ui }
   | (ControlMsg msg,_) -> 
      let s1 = { state with dragger = None; ui = Controls.update msg state.ui } in
      if s1.ui.dirtyPanel then

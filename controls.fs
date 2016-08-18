@@ -142,7 +142,16 @@ let rootView (html : Msg Html) state =
 let rec panelChildren (html : Msg Html) panel =
   html.div
     [html.className "panel-tree-row"]
-    [Html.onMouseClick html (fun evt -> SelectPanel panel.id)]
+    [Html.onMouseClick 
+       html 
+       (fun evt -> 
+         begin
+           VDom.preventDefault evt ;
+           VDom.stopPropagation evt ;
+           SelectPanel panel.id
+         end
+       )
+    ]
     (List.concat
        [
          [ html.text (String.concat " " ["Panel";panel.id]) ];
