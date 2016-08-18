@@ -1,6 +1,9 @@
 module Panel
 
+open Util
 open Point
+open CSS
+open Html
 
 type AxisPosition =
   |   LowGrav of float * float
@@ -20,6 +23,9 @@ type Panel =
     id : string ;
     children : Panel list ;
   }
+
+type Msg =
+  | NoOp
 
 let upperLeft p =
   let l = 
@@ -82,9 +88,45 @@ let positionString p =
   | Relative -> "relative"
   | Absolute -> "absolute"
 
+let rec updateChildPositions p r =
+  let adjustChildPosition diffWidth diffHeight child =
+    let p1 =
+      match child.lr with
+      | MidCover (l,r) ->
+         { child with lr = MidCover (l,r + diffWidth) }
+      | HighGrav (w,r) ->
+         { child with lr = HighGrav (w,r + diffWidth) }
+      | _ -> child
+    in
+    let p2 =
+      match p1.tb with
+      | MidCover (t,b) ->
+         { p1 with tb = MidCover (t,b + diffHeight) }
+      | HighGrav (h,b) ->
+       { p1 with tb = HighGrav (h,b + diffHeight) }
+      | _ -> p1
+    in
+    updateChildPositions p2 child
+  in
+  let pUL = upperLeft p in
+  let pLR = lowerRight p in
+  let rUL = upperLeft r in
+  let rLR = lowerRight r in
+  let pWidth = pLR.x - pUL.x in
+  let pHeight = pLR.y - pUL.y in
+  let rWidth = rLR.x - rUL.x in
+  let rHeight = rLR.y - rUL.y in
+  let diffWidth = Util.log "diffWidth" (pWidth - rWidth) in
+  let diffHeight = Util.log "diffHeight" (pHeight - rHeight) in
+  { r with 
+    children =
+      r.children |>
+        List.map (adjustChildPosition diffWidth diffHeight)
+  }
+
 let rec replace p r =
   if r.id = p.id then
-    p
+    updateChildPositions p r
   else
     { r with children = List.map (replace p) r.children }
 
@@ -149,7 +191,7 @@ let xAxisStringToGravity s left right =
   match candidates with
   | (_,MidCover _) :: tl -> MidCover (left, right)
   | (_,HighGrav _) :: tl -> HighGrav (right - left, right)
-  | _ :: tl -> LowGrav (left, right - left)
+  | _ -> LowGrav (left, right - left)
 
 let yAxisStringToGravity s top bottom =
   let candidates =
@@ -160,10 +202,47 @@ let yAxisStringToGravity s top bottom =
   match candidates with
   | (_,MidCover _) :: tl -> MidCover (top, bottom)
   | (_,HighGrav _) :: tl -> HighGrav (bottom - top, bottom)
-  | _ :: tl -> LowGrav (top, bottom - top)
+  | _ -> LowGrav (top, bottom - top)
 
 let setLRMeasure lr panel =
   { panel with lr = lr }
 
 let setTBMeasure tb panel =
   { panel with tb = tb }
+
+let view (html : Msg Html.Html) selected panel =
+  let rec viewPanel (panel : Panel) =
+    let panelClass = 
+      if selected = panel.id then 
+        String.concat " " ["panel";"panel-selected"]
+      else 
+        "panel" 
+    in
+    let draggerUL = upperLeft panel in
+    let draggerBR = lowerRight panel in
+    html.div
+      [
+        html.className panelClass ;
+        html.style 
+          [
+            ("position", positionString panel.position);
+            ("left", CSS.pixelPos draggerUL.x);
+            ("top", CSS.pixelPos draggerUL.y);
+            ("width", CSS.pixelPos (draggerBR.x - draggerUL.x));
+            ("height", CSS.pixelPos (draggerBR.y - draggerUL.y))
+          ]
+      ]
+      []
+      (List.concat 
+         [
+           [
+             html.div
+               [html.className "panel-hide-layout"]
+               []
+               [html.text (String.concat " " ["PANEL:";panel.id])]
+           ];
+           List.map viewPanel panel.children
+         ]
+      )
+  in
+  viewPanel panel

@@ -7,6 +7,7 @@ open Fable.Import.Browser
 #load "point.fs"
 #load "vdom.fs"
 #load "html.fs"
+#load "css.fs"
 #load "panel.fs"
 #load "input.fs"
 #load "controls.fs"
@@ -45,6 +46,7 @@ type Msg =
   | MouseUp of float * float
   | MouseMove of float * float
   | ControlMsg of Controls.Msg
+  | PanelMsg of Panel.Msg
                              
 let init arg =
   let root = 
@@ -157,42 +159,8 @@ let update action state =
          
 let cssPixelPos v =
   String.concat "" [Util.toString v; "px"]
-                
+
 let view (html : Msg Html.Html) state =
-  let rec viewPanel (panel : Panel) =
-    let panelClass = 
-      if state.selected = panel.id then 
-        String.concat " " ["panel";"panel-selected"]
-      else 
-        "panel" 
-    in
-    let draggerUL = Panel.upperLeft panel in
-    let draggerBR = Panel.lowerRight panel in
-    html.div
-      [
-        html.className panelClass ;
-        html.style 
-          [
-            ("position", Panel.positionString panel.position);
-            ("left", cssPixelPos draggerUL.x);
-            ("top", cssPixelPos draggerUL.y);
-            ("width", cssPixelPos (draggerBR.x - draggerUL.x));
-            ("height", cssPixelPos (draggerBR.y - draggerUL.y))
-          ]
-      ]
-      []
-      (List.concat 
-         [
-           [
-             html.div
-               [html.className "panel-hide-layout"]
-               []
-               [html.text (String.concat " " ["PANEL:";panel.id])]
-           ];
-           List.map viewPanel panel.children
-         ]
-      )
-  in
   let visualizeDrag =
     match (state.dragger,state.dragmode) with
     | (None,_) -> []
@@ -255,7 +223,7 @@ let view (html : Msg Html.Html) state =
                    Html.onMouseUp html (fun evt -> MouseUp (evt.pageX, evt.pageY)) ;
                    Html.onMouseMove html (fun evt -> MouseMove (evt.pageX, evt.pageY))
                  ]
-                 [ viewPanel state.root ] ;
+                 [ Panel.view (Html.map (fun msg -> PanelMsg msg) html) state.selected state.root ] ;
              ] ;
          ] ;
          Controls.view controlHtml state.ui ;

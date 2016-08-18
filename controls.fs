@@ -67,7 +67,7 @@ let makeEditors panel =
          Panel.yAxisPositionString panel.tb,
          List.map Panel.yAxisPositionString Panel.gravityList);
       ]
-    
+
 let init panel = 
   { full = false ; 
     backgroundUrl = "" ; 
