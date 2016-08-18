@@ -118,7 +118,7 @@ let rec updateChildPositions p r =
   let rHeight = rLR.y - rUL.y in
   let diffWidth = Util.log "diffWidth" (pWidth - rWidth) in
   let diffHeight = Util.log "diffHeight" (pHeight - rHeight) in
-  { r with 
+  { p with 
     children =
       r.children |>
         List.map (adjustChildPosition diffWidth diffHeight)
@@ -185,10 +185,10 @@ let setPosition pos panel =
 let xAxisStringToGravity s left right =
   let candidates =
     gravityList |>
-      List.map (fun p -> (yAxisPositionString p, p)) |>
+      List.map (fun p -> (xAxisPositionString p, p)) |>
       List.filter (fun (ps,p) -> ps = s)
   in
-  match candidates with
+  match Util.expose "xAxisStringToGravity" candidates with
   | (_,MidCover _) :: tl -> MidCover (left, right)
   | (_,HighGrav _) :: tl -> HighGrav (right - left, right)
   | _ -> LowGrav (left, right - left)
@@ -205,7 +205,7 @@ let yAxisStringToGravity s top bottom =
   | _ -> LowGrav (top, bottom - top)
 
 let setLRMeasure lr panel =
-  { panel with lr = lr }
+  { panel with lr = Util.expose "setLRMeasure" lr }
 
 let setTBMeasure tb panel =
   { panel with tb = tb }
