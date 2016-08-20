@@ -31,7 +31,7 @@ type State =
   { 
     palette : Map<string, Color> ;
     root : Panel ;
-    selected : string ;
+    selected : Panel ;
     backgroundUrl : string ;
     dragmode : DragMode ;
     dragger : Dragger option ;
@@ -61,7 +61,7 @@ let init arg =
   in
   { 
     palette = Map<string, Color> [] ;
-    selected = "root" ;
+    selected = root ;
     backgroundUrl = "" ;
     root = root ;
     dragger = None ;
@@ -70,14 +70,13 @@ let init arg =
   }
 
 let update action state =
-  let selectPanel coords =
-    match Panel.fromCoord coords state.root with
-    | [] -> state
-    | hd :: tl -> 
-       if hd.id = state.selected then
-         { state with selected = "" ; ui = Controls.select state.root state.ui }
-       else 
-         { state with selected = hd.id ; ui = Controls.select hd state.ui }
+  let selectPanel (panel : Panel) state =
+    let parent = 
+      state.root
+      |> (Panel.parent panel.id state.root)
+      |> Util.headWithDefault state.root
+    in
+    { state with selected = panel ; ui = Controls.select panel (Util.expose "Controls.select parent" parent) state.ui }
   in
   let createNewPanel parentCoords dragger =
     let draggerUL = 
@@ -107,16 +106,37 @@ let update action state =
       { parent with Panel.children = List.map (addChildWithId id child) parent.children }
   in
   let createChild dragger =
-    match Panel.fromCoord dragger.start state.root with
-    | [] -> state
-    | hd :: tl ->
-       match Panel.offset hd.id state.root with
-       | [] -> state
-       | parentCoords :: _ ->
-          { state with root = addChildWithId hd.id (createNewPanel parentCoords dragger) state.root }
+    state.root
+    |> Panel.fromCoord dragger.start
+    |> Util.andMap
+         (fun hd -> 
+           state.root 
+           |> Panel.offset hd.id 
+           |> List.map (Util.tuple2 hd)
+         )
+    |> List.map 
+         (fun (hd, offset) ->
+           { state with 
+             root = 
+               addChildWithId hd.id (createNewPanel offset dragger) state.root
+           }
+         )
+    |> Util.headWithDefault state 
+  in
   let performDragOp dragger = 
     match (Util.log "PerformDragOp" dragger.action) with
-    | Click -> selectPanel dragger.start
+    | Click -> 
+       state.root
+       |> Panel.fromCoord dragger.start
+       |> List.map 
+            (fun panel -> 
+              if state.selected.id = panel.id then
+                state.root 
+              else 
+                panel
+            )
+       |> Util.headWithDefault state.root
+       |> (Util.flip selectPanel) state
     | Drag -> createChild dragger
   in
   match Util.expose "action" (action,state.dragger) with
@@ -149,10 +169,10 @@ let update action state =
   | (ControlMsg (Controls.ChangeBackground bg),_) ->
      { state with backgroundUrl = Util.log "Background" bg }
   | (ControlMsg (Controls.SelectPanel pid),_) ->
-     match Panel.fromId pid state.root with
-     | [] -> state
-     | hd :: tl -> 
-        { state with selected = pid ; ui = Controls.select hd state.ui }
+     state.root
+     |> Panel.fromId pid
+     |> Util.headWithDefault state.root
+     |> (Util.flip selectPanel) state
   | (ControlMsg msg,_) -> 
      let s1 = { state with dragger = None; ui = Controls.update msg state.ui } in
      if s1.ui.dirtyPanel then
@@ -228,7 +248,7 @@ let view (html : Msg Html.Html) state =
                    Html.onMouseUp html (fun evt -> MouseUp (evt.pageX, evt.pageY)) ;
                    Html.onMouseMove html (fun evt -> MouseMove (evt.pageX, evt.pageY))
                  ]
-                 [ Panel.view (Html.map (fun msg -> PanelMsg msg) html) state.selected state.root ] ;
+                 [ Panel.view (Html.map (fun msg -> PanelMsg msg) html) state.selected.id state.root ] ;
              ] ;
          ] ;
          Controls.view controlHtml state.ui ;

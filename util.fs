@@ -52,3 +52,14 @@ let rec listNth d l n =
   | (_,hd :: tl,0) -> hd
   | (d,[],0) -> d
   | (_,hd :: tl,n) -> listNth d tl (n - 1)
+
+let headWithDefault d l =
+  match l with 
+  | [] -> d
+  | hd :: _ -> hd
+
+let flip f b a = f a b
+
+let andMap f l = l |> List.map f |> List.concat
+
+let tuple2 a b = (a,b)

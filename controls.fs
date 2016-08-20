@@ -20,6 +20,7 @@ type UI =
   {
     full : bool ;
     backgroundUrl : string ;
+    parent : Panel ;
     focused : Panel ;
     editors : Input.EditorSet ;
     dirtyPanel : bool ;
@@ -70,14 +71,16 @@ let makeEditors panel =
 
 let init panel = 
   { full = false ; 
-    backgroundUrl = "" ; 
+    backgroundUrl = "" ;
+    parent = panel ;
     focused = panel ; 
     editors = makeEditors panel ;
     dirtyPanel = false ;
   }
 
-let select panel state =
-  { state with focused = panel ; editors = makeEditors panel }
+let select panel parent state =
+  let _ = Util.log "Controls.select with" (panel.id, parent.id) in
+  { state with focused = panel ; parent = parent ; editors = makeEditors panel }
 
 let updatePanelWithValue name current value panel =
   match Util.expose "updatePanelWithValue" (name,current,value) with
@@ -139,7 +142,7 @@ let rootView (html : Msg Html) state =
       ]
   ]
 
-let rec panelChildren (html : Msg Html) panel =
+let panelDisplayHierRow (html : Msg Html) panel children =
   html.div
     [html.className "panel-tree-row"]
     [Html.onMouseClick 
@@ -152,12 +155,15 @@ let rec panelChildren (html : Msg Html) panel =
          end
        )
     ]
-    (List.concat
+    (List.concat 
        [
          [ html.text (String.concat " " ["Panel";panel.id]) ];
-         List.map (panelChildren html) panel.children
+         children
        ]
     )
+
+let rec panelChildren (html : Msg Html) panel =
+  panelDisplayHierRow html panel (List.map (panelChildren html) panel.children)
 
 let panelControls (html : Msg Html) state panel =
   let labeledInput name (inp : Input.EditorInstance) =
@@ -189,7 +195,7 @@ let panelView (html : Msg Html) state =
       [] [] 
       [
         panelControls html state state.focused ;
-        panelChildren html state.focused
+        panelDisplayHierRow html state.parent [panelChildren html state.focused]
       ]
   ]
 

@@ -95,6 +95,25 @@ let rec fromId id panel =
   in
   List.concat [matchingChildPanels; matchingThisPanel]
 
+let parent id parent_ panel =
+  let rec treeWithParents parent_ panel =
+    seq 
+      {
+        yield (parent_,panel) ;
+        yield! 
+             (panel.children 
+              |> Seq.map (treeWithParents panel) 
+              |> Seq.concat)
+      }
+  in
+  let parentsAndChildren = (treeWithParents parent_ panel) in
+  parentsAndChildren
+  |> Seq.skipWhile (fun (parent,p) -> p.id <> id)
+  |> Seq.take 1
+  |> Seq.toList
+  |> Util.expose "parent"
+  |> List.map (fun (parent,p) -> parent)
+
 let positionString p =
   match p with
   | Relative -> "relative"
