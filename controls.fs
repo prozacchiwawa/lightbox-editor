@@ -101,6 +101,17 @@ let makeRootEditors backgroundUrl grid =
       )
       [
         ("Use Grid", grid.enabled)
+      ] |>
+    foldInto
+      (fun editors (name,value) ->
+        let ed = createNumEditor name value in
+        Input.create name ed editors
+      )
+      [
+        ("Grid X Offset", Util.toString grid.offset.x) ;
+        ("Grid Y Offset", Util.toString grid.offset.y) ;
+        ("Grid Width", Util.toString grid.interval.x) ;
+        ("Grid Height", Util.toString grid.interval.y)
       ]
 
 let init grid panel = 
@@ -138,7 +149,11 @@ let updatePanelWithValue name current value panel =
 
 let updateRootWithValue name current value state =
   match (name,current,value) with
-  | ("Use Grid",_,value) -> { state with grid = { state.grid with enabled = current <> "false" } }
+  | ("Use Grid",current,_) -> { state with grid = { state.grid with enabled = current <> "false" } }
+  | ("Grid X Offset",_,Some value) -> { state with grid = { state.grid with offset = { state.grid.offset with x = value } } }
+  | ("Grid Y Offset",_,Some value) -> { state with grid = { state.grid with offset = { state.grid.offset with y = value } } }
+  | ("Grid Width",_,Some value) -> { state with grid = { state.grid with interval = { state.grid.interval with x = value } } }
+  | ("Grid Height",_,Some value) -> { state with grid = { state.grid with interval = { state.grid.interval with y = value } } }
     
 let updatePanelFromEditor state =
   { state with
