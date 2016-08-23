@@ -1,10 +1,12 @@
 module Controls
 
 open Util
+open Grid
 open Html
 open Panel
 open Input
 
+type Grid = Grid.Grid
 type Panel = Panel.Panel
 
 type Msg =
@@ -15,6 +17,8 @@ type Msg =
   | ChangePanel of Panel
   | SelectPanel of string
   | EditorMsg of Input.Msg
+  | RootEdMsg of Input.Msg
+  | SetGrid of Grid
 
 type UI =
   {
@@ -23,7 +27,9 @@ type UI =
     parent : Panel ;
     focused : Panel ;
     editors : Input.EditorSet ;
+    rootEd : Input.EditorSet ;
     dirtyPanel : bool ;
+    grid : Grid ;
   }
 
 let foldInto f list init = List.fold f init list
@@ -69,13 +75,43 @@ let makeEditors panel =
          List.map Panel.yAxisPositionString Panel.gravityList);
       ]
 
-let init panel = 
+let makeRootEditors backgroundUrl grid =
+  let createEditor name value = 
+    new InputEditor(
+          value, 
+          (fun value -> true),
+          ("text-input", "text-input")
+        )
+  in
+  let createNumEditor name value =
+    new InputEditor(
+          value, 
+          (fun value -> (Util.parseFloat value) <> None), 
+          ("numeric-input-good", "numeric-input-bad")
+        )
+  in
+  let createCheckbox name value = 
+    new Checkbox(if value then "true" else "false")
+  in
+  (Input.init ()) |>
+    foldInto
+      (fun editors (name,value) ->
+        let ed = createCheckbox name value in
+        Input.create name ed editors
+      )
+      [
+        ("Use Grid", grid.enabled)
+      ]
+
+let init grid panel = 
   { full = false ; 
     backgroundUrl = "" ;
     parent = panel ;
     focused = panel ; 
     editors = makeEditors panel ;
+    rootEd = makeRootEditors "" grid ;
     dirtyPanel = false ;
+    grid = grid ;
   }
 
 let select panel parent state =
@@ -99,6 +135,10 @@ let updatePanelWithValue name current value panel =
      let measure = Panel.yAxisStringToGravity cv ul.y lr.y in
      Panel.setTBMeasure measure panel
   | _ -> panel
+
+let updateRootWithValue name current value state =
+  match (name,current,value) with
+  | ("Use Grid",_,value) -> { state with grid = { state.grid with enabled = value <> "false" } }
     
 let updatePanelFromEditor state =
   { state with
@@ -118,29 +158,45 @@ let update action state =
   match action with
   | ToggleControls ->
      { state with full = not state.full }
-  | BackgroundInput bg ->
-     { state with backgroundUrl = bg }
   | EditorMsg msg ->
      { state with editors = Input.update msg state.editors } |> 
        updatePanelFromEditor
   | _ -> state
 
-let rootView (html : Msg Html) state =
-  [ html.div [html.className "control-row"] [] [ html.text "Root" ] ;
-    html.div [html.className "control-row"] [] [ html.text "Background Image" ] ; 
-    html.div 
-      [html.className "control-row"] [] 
-      [ 
-        html.input 
-          [html.inputValue state.backgroundUrl] 
-          [Html.onInput html (fun evt -> BackgroundInput evt.target.value)] 
-          []; 
-        html.button 
-          [] 
-          [Html.onMouseClick html (fun evt -> ChangeBackground state.backgroundUrl)]
-          [html.text "Set Background"]
-      ]
+let labeledInput html f name (inp : Input.EditorInstance) =
+  [
+    html.div
+      [html.className "control-row"] []
+      [html.text name];
+    html.div
+      [html.className "control-row"] []
+      [inp.view (Html.map f html) name]
   ]
+
+let rootView (html : Msg Html) state =
+  let inputs =
+    Input.map (labeledInput html (fun msg -> RootEdMsg msg)) state.rootEd
+  in
+  (List.concat
+     [
+       [
+         html.text "Root";
+         html.div 
+           [html.className "control-row"] [] 
+           [ 
+             html.input 
+               [html.inputValue state.backgroundUrl] 
+               [Html.onInput html (fun evt -> BackgroundInput evt.target.value)] 
+               []; 
+             html.button 
+               [] 
+               [Html.onMouseClick html (fun evt -> ChangeBackground state.backgroundUrl)]
+               [html.text "Set Background"]
+            ]
+       ] ;
+       (List.concat inputs)
+     ]
+  )
 
 let panelDisplayHierRow (html : Msg Html) panel children =
   html.div
@@ -166,28 +222,15 @@ let rec panelChildren (html : Msg Html) panel =
   panelDisplayHierRow html panel (List.map (panelChildren html) panel.children)
 
 let panelControls (html : Msg Html) state panel =
-  let labeledInput name (inp : Input.EditorInstance) =
-    [
-      html.div
-        [html.className "control-row"] []
-        [html.text name];
-      html.div
-        [html.className "control-row"] []
-        [inp.view (Html.map (fun msg -> EditorMsg msg) html) name]
-    ]
-  in
   let inputs =
-    Input.map labeledInput state.editors
+    Input.map (labeledInput html (fun msg -> EditorMsg msg)) state.editors
   in
   html.div
     [] []
     [
       html.text (String.concat " " ["Panel"; state.focused.id]);
-      html.div
-        [] []
-        (List.concat inputs)
+      html.div [] [] (List.concat inputs)
     ]
-
 
 let panelView (html : Msg Html) state =
   [ 

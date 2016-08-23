@@ -5,6 +5,7 @@ open Fable.Import.Browser
 
 #load "util.fs"
 #load "point.fs"
+#load "grid.fs"
 #load "vdom.fs"
 #load "html.fs"
 #load "css.fs"
@@ -15,6 +16,7 @@ open Fable.Import.Browser
 type Point = Point.Point
 type Panel = Panel.Panel
 type UI = Controls.UI
+type Grid = Grid.Grid
 
 type Color = { r : int ; b : int ; g : int ; a : int }
                
@@ -35,6 +37,7 @@ type State =
     backgroundUrl : string ;
     dragmode : DragMode ;
     dragger : Dragger option ;
+    grid : Grid ;
     ui : UI ;
   }
     
@@ -47,7 +50,7 @@ type Msg =
   | MouseMove of float * float
   | ControlMsg of Controls.Msg
   | PanelMsg of Panel.Msg
-                             
+
 let init arg =
   let root = 
     { 
@@ -59,6 +62,7 @@ let init arg =
       Panel.children = [] ;
     }
   in
+  let grid = Grid.create false (Point.ctor 0. 0.) (Point.ctor 1. 1.) in
   { 
     palette = Map<string, Color> [] ;
     selected = root ;
@@ -66,7 +70,8 @@ let init arg =
     root = root ;
     dragger = None ;
     dragmode = Select ;
-    ui = Controls.init root
+    grid = grid ;
+    ui = Controls.init grid root
   }
 
 let update action state =
@@ -173,6 +178,8 @@ let update action state =
      |> Panel.fromId pid
      |> Util.headWithDefault state.root
      |> (Util.flip selectPanel) state
+  | (ControlMsg (Controls.SetGrid grid),_) ->
+     { state with grid = grid }
   | (ControlMsg msg,_) -> 
      let s1 = { state with dragger = None; ui = Controls.update msg state.ui } in
      if s1.ui.dirtyPanel then

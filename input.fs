@@ -66,6 +66,24 @@ type InputSelector(currentValue : string, valueList : Set<string>) =
             )
         ]
 
+type Checkbox(currentValue : string) =
+  interface EditorInstance with
+    member self.currentValue () = currentValue
+    member self.update sv = new Checkbox(sv) :> EditorInstance
+    member self.good str = str = "true" || str = "false"
+    member self.view html name =
+        html.div
+          [html.className "check-container"]
+          [Html.onMouseClick html (fun evt -> InputValueChanged (name, (if currentValue = "false" then "true" else "false")))]
+          [
+            (if currentValue = "false" then
+               html.i [ html.className "fa fa-square-o"; {name = "aria-hidden"; value = "true" } ] [] []
+             else
+               html.i [ html.className "fa fa-check-square-o"; {name = "aria-hidden"; value = "true" } ] [] []
+            ) ;
+            html.text name
+          ]
+
 type EditorSet =
   {
     editors : Map<string, EditorInstance> ;
