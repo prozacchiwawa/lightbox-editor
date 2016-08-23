@@ -138,7 +138,7 @@ let updatePanelWithValue name current value panel =
 
 let updateRootWithValue name current value state =
   match (name,current,value) with
-  | ("Use Grid",_,value) -> { state with grid = { state.grid with enabled = value <> "false" } }
+  | ("Use Grid",_,value) -> { state with grid = { state.grid with enabled = current <> "false" } }
     
 let updatePanelFromEditor state =
   { state with
@@ -151,8 +151,18 @@ let updatePanelFromEditor state =
           updatePanelWithValue (Util.log "name" name) cv v panel
         )
         state.focused
-        (Input.map (fun n v -> (n,v)) state.editors)
+        (Input.map Util.tuple2 state.editors)
   }
+
+let updateFromRootEditor state =
+  List.fold 
+    (fun state ((name,editor) : (string * Input.EditorInstance)) ->
+      let cv = editor.currentValue () in
+      let v = Util.parseFloat cv in
+      updateRootWithValue name cv v state
+    )
+    state
+    (Input.map Util.tuple2 state.rootEd)
 
 let update action state =
   match action with
@@ -161,6 +171,9 @@ let update action state =
   | EditorMsg msg ->
      { state with editors = Input.update msg state.editors } |> 
        updatePanelFromEditor
+  | RootEdMsg msg ->
+     { state with rootEd = Input.update msg state.rootEd } |>
+       updateFromRootEditor
   | _ -> state
 
 let labeledInput html f name (inp : Input.EditorInstance) =

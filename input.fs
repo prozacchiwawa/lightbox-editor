@@ -80,8 +80,7 @@ type Checkbox(currentValue : string) =
                html.i [ html.className "fa fa-square-o"; {name = "aria-hidden"; value = "true" } ] [] []
              else
                html.i [ html.className "fa fa-check-square-o"; {name = "aria-hidden"; value = "true" } ] [] []
-            ) ;
-            html.text name
+            )
           ]
 
 type EditorSet =
