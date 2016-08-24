@@ -62,7 +62,7 @@ let init arg =
       Panel.children = [] ;
     }
   in
-  let grid = Grid.create false (Point.ctor 0. 0.) (Point.ctor 1. 1.) in
+  let grid = Grid.create false (Point.ctor 0. 0.) (Point.ctor 16. 16.) in
   { 
     palette = Map<string, Color> [] ;
     selected = root ;
@@ -178,15 +178,16 @@ let update action state =
      |> Panel.fromId pid
      |> Util.headWithDefault state.root
      |> (Util.flip selectPanel) state
-  | (ControlMsg (Controls.SetGrid grid),_) ->
-     { state with grid = grid }
   | (ControlMsg msg,_) -> 
      let s1 = { state with dragger = None; ui = Controls.update msg state.ui } in
-     if s1.ui.dirtyPanel then
-       let (panel,ui) = Controls.takeUpdate s1.ui in
-       { s1 with ui = ui ; root = Panel.replace panel s1.root }
-     else
-       s1
+     let s2 = 
+       if s1.ui.dirtyPanel then
+         let (panel,ui) = Controls.takeUpdate s1.ui in
+         { s1 with ui = ui ; root = Panel.replace panel s1.root }
+       else
+         s1
+     in
+     { s2 with grid = s2.ui.grid }
   | _ -> state
          
 let cssPixelPos v =
@@ -195,7 +196,8 @@ let cssPixelPos v =
 let view (html : Msg Html.Html) state =
   let visualizeDrag =
     match (state.dragger,state.dragmode) with
-    | (None,_) -> []
+    | (None,_) -> 
+       [ html.div [{name = "style"; value = "display: none"}] [] [] ]
     | (Some dragger,Select) ->
        let draggerUL = 
          Point.ctor
@@ -219,6 +221,55 @@ let view (html : Msg Html.Html) state =
            []
            []
        ]
+  in
+  let visualizeGrid =
+    let svg = html.svg in
+    let linePx x1 y1 x2 y2 =
+      svg.line
+        [
+          {name = "stroke" ; value = "black"};
+          {name = "x1" ; value = Util.toString x1} ;
+          {name = "y1" ; value = Util.toString y1} ;
+          {name = "x2" ; value = Util.toString x2} ;
+          {name = "y2" ; value = Util.toString y2}
+        ]
+    in
+    if state.grid.enabled then
+      [
+        html.div
+          [html.className "grid"]
+          []
+          [
+            svg.root 
+              [
+                {name = "width" ; value = "1000"} ;
+                {name = "height" ; value = "1000"} ;
+                {name = "viewBox" ; value = "0 0 1000 1000"}
+              ]
+              [
+                svg.defs
+                  [
+                    svg.pattern
+                      "pt" 
+                      0. 0. state.grid.interval.x state.grid.interval.y
+                      [
+                        linePx 0. 0. state.grid.interval.x 0. ;
+                        linePx 0. 0. 0. state.grid.interval.y ;
+                      ]
+                  ] ;
+                svg.rect
+                  [
+                    {name = "x" ; value = Util.toString 0} ;
+                    {name = "y" ; value = Util.toString 0} ;
+                    {name = "width" ; value = "100000"} ;
+                    {name = "height" ; value = "100000"} ;
+                    {name = "style" ; value = "fill: url(#pt);"}
+                  ] [] []
+              ]
+          ]
+      ]
+    else
+      []
   in
   let mapControlMsg : (Controls.Msg -> Msg) = 
     fun m -> ControlMsg m
@@ -250,16 +301,43 @@ let view (html : Msg Html.Html) state =
              [
                html.div
                  (List.concat [ [html.className "root"]; backgroundSpecification ])
-                 [ 
-                   Html.onMouseDown html (fun evt -> MouseDown (evt.pageX, evt.pageY)) ;
-                   Html.onMouseUp html (fun evt -> MouseUp (evt.pageX, evt.pageY)) ;
-                   Html.onMouseMove html (fun evt -> MouseMove (evt.pageX, evt.pageY))
+                 []
+                 [ Panel.view (Html.map (fun msg -> PanelMsg msg) html) state.selected.id state.root 
+                 ] ;
+               html.div
+                 [html.className "dragger-container"]
+                 [
+                   Html.onMouseDown 
+                     html 
+                     (fun evt -> 
+                       begin
+                         VDom.preventDefault evt ;
+                         MouseDown (evt.pageX, evt.pageY)
+                       end) ;
+                   Html.onMouseUp 
+                     html 
+                     (fun evt -> 
+                       begin
+                         VDom.preventDefault evt ;
+                         MouseUp (evt.pageX, evt.pageY)
+                       end) ;
+                   Html.onMouseMove 
+                     html 
+                     (fun evt -> 
+                       begin
+                         VDom.preventDefault evt ;
+                         MouseMove (evt.pageX, evt.pageY)
+                       end)
                  ]
-                 [ Panel.view (Html.map (fun msg -> PanelMsg msg) html) state.selected.id state.root ] ;
+                 (List.concat
+                    [
+                      visualizeDrag ;
+                      visualizeGrid
+                    ]
+                 )
              ] ;
          ] ;
          Controls.view controlHtml state.ui ;
-         visualizeDrag
        ]
     )
 

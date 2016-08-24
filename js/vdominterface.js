@@ -36,6 +36,25 @@ eventHookType.prototype.unhook = function(node, propertyName) {
     }
 }
 
+function Attribute(pname, value) {
+    this.pname = pname;
+    this.value = value;
+}
+
+Attribute.prototype.toString = function() {
+    return [this.pname,this.value];
+}
+
+Attribute.prototype.hook = function (elem, propName, previous) {
+    if (!previous || previous.value !== this.value) {
+        if (this.value !== undefined) {
+            elem.setAttribute(this.pname, this.value);
+        } else {
+            elem.removeAttribute(this.pname);
+        }
+    }
+}
+
 // Create a text VNode
 var vtext = function(t) { return new VText(t); }
 
@@ -56,8 +75,13 @@ var vnode = function(tag) {
                 var propdata = {};
                 // Lists in fable have .head and .tail members.
                 // The nil list item has head and tail falsey.
+                var namespace = null;
                 while (props.head) {
-                    propdata[props.head.name] = props.head.value;
+                    if (props.head.name !== 'xmlns') {
+                        propdata[props.head.name] = new Attribute(props.head.name, props.head.value);
+                    } else {
+                        namespace = props.head.value;
+                    }
                     props = props.tail;
                 }
                 while (on.head) {
@@ -69,7 +93,10 @@ var vnode = function(tag) {
                     childdata.push(children.head);
                     children = children.tail;
                 }
-                return new VNode(tag, propdata, childdata);
+                if (namespace) {
+                    console.log('create tag',tag,'with namespace',namespace);
+                }
+                return new VNode(tag, propdata, childdata, null, namespace);
             }
         }
     }

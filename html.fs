@@ -1,6 +1,27 @@
 module Html
 
 open VDom
+open Util
+
+type 'Msg Svg =
+    { vdom : 'Msg VDom.VDom ;
+      root : 
+        VDom.Property list ->
+        VDom.VNode list ->
+        VDom.VNode ;
+      defs : VDom.VNode list -> VDom.VNode ;
+      pattern :
+        string -> 
+        float -> float -> float -> float ->
+        VDom.VNode list ->
+        VDom.VNode ;
+      line : VDom.Property list -> VDom.VNode ;
+      rect :
+        VDom.Property list ->
+        VDom.Response list ->
+        VDom.VNode list ->
+        VDom.VNode 
+    }
 
 type 'Msg Html =
     { vdom : 'Msg VDom.VDom ;
@@ -34,6 +55,7 @@ type 'Msg Html =
           VDom.Response list ->
           VDom.VNode list ->
           VDom.VNode ;
+      svg : 'Msg Svg ;
       text : string -> VDom.VNode ;
       attribute : string -> string -> VDom.Property;
       style : (string * string) list -> VDom.Property;
@@ -83,10 +105,73 @@ let html vdom =
     i = vdom.vnode "i" ;
     select = vdom.vnode "select" ;
     option = vdom.vnode "option" ;
+    svg =
+      { vdom = vdom ;
+        root = 
+          (fun attrs children ->
+            vdom.vnode
+              "svg"
+              (List.concat 
+                 [ 
+                   [ 
+                     {name = "xmlns"; value = "http://www.w3.org/2000/svg"} ;
+                     {name = "version"; value = "1.1"}
+                   ] ;
+                   attrs
+                 ]
+              )
+              []
+              children
+          ) ;
+        defs = 
+          (fun children -> 
+            vdom.vnode 
+              "defs" 
+              [{name = "xmlns"; value = "http://www.w3.org/2000/svg"}] 
+              [] children
+          ) ;
+        pattern =
+          (fun id x y w h children -> 
+            vdom.vnode 
+              "pattern" 
+              [
+                {name = "xmlns"; value = "http://www.w3.org/2000/svg"} ;
+                {name = "id" ; value = id} ;
+                {name = "x" ; value = Util.toString x} ;
+                {name = "y" ; value = Util.toString y} ;
+                {name = "width" ; value = Util.toString w} ;
+                {name = "height" ; value = Util.toString h} ;
+                {name = "patternUnits" ; value = "userSpaceOnUse"}
+              ] 
+              [] children
+          ) ;
+        line =
+          (fun props -> 
+            vdom.vnode 
+              "line" 
+              (List.concat 
+                 [ 
+                   [{name = "xmlns"; value = "http://www.w3.org/2000/svg"}] ;
+                   props
+                 ]
+              ) [] []
+          ) ;
+        rect =
+          (fun props responders children ->
+            vdom.vnode 
+              "rect" 
+              (List.concat 
+                 [ 
+                   [{name="xmlns"; value="http://www.w3.org/2000/svg"}] ;
+                   props
+                 ]
+              ) responders children
+          )
+      }
     text = vdom.vtext ;
     attribute = fun n v -> { name = n; value = v } ;
     style = fun l -> {name = "style"; value = makeCSS l} ;
-    className = fun c -> {name = "className"; value = c} ;
+    className = fun c -> {name = "class"; value = c} ;
     inputValue = fun v -> {name = "value"; value = v} ;
   }
 

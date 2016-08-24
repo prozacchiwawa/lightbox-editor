@@ -154,6 +154,7 @@ let updateRootWithValue name current value state =
   | ("Grid Y Offset",_,Some value) -> { state with grid = { state.grid with offset = { state.grid.offset with y = value } } }
   | ("Grid Width",_,Some value) -> { state with grid = { state.grid with interval = { state.grid.interval with x = value } } }
   | ("Grid Height",_,Some value) -> { state with grid = { state.grid with interval = { state.grid.interval with y = value } } }
+  | _ -> state
     
 let updatePanelFromEditor state =
   { state with
