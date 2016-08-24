@@ -93,9 +93,6 @@ var vnode = function(tag) {
                     childdata.push(children.head);
                     children = children.tail;
                 }
-                if (namespace) {
-                    console.log('create tag',tag,'with namespace',namespace);
-                }
                 return new VNode(tag, propdata, childdata, null, namespace);
             }
         }
