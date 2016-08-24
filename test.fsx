@@ -179,15 +179,13 @@ let update action state =
      |> Util.headWithDefault state.root
      |> (Util.flip selectPanel) state
   | (ControlMsg msg,_) -> 
-     let s1 = { state with dragger = None; ui = Controls.update msg state.ui } in
-     let s2 = 
-       if s1.ui.dirtyPanel then
-         let (panel,ui) = Controls.takeUpdate s1.ui in
-         { s1 with ui = ui ; root = Panel.replace panel s1.root }
-       else
-         s1
-     in
-     { s2 with grid = s2.ui.grid }
+     let s0 = { state with dragger = None; ui = Controls.update msg state.ui } in
+     let s1 = { s0 with grid = s0.ui.grid } in
+     if s1.ui.dirtyPanel then
+       let (panel,ui) = Controls.takeUpdate s1.ui in
+       { s1 with ui = ui ; root = Panel.replace panel s1.root }
+     else
+       s1
   | _ -> state
          
 let cssPixelPos v =
@@ -244,7 +242,16 @@ let view (html : Msg Html.Html) state =
               [
                 {name = "width" ; value = "1000"} ;
                 {name = "height" ; value = "1000"} ;
-                {name = "viewBox" ; value = "0 0 1000 1000"}
+                {name = "viewBox" ; 
+                 value = 
+                   String.concat 
+                     " " 
+                     [Util.toString state.grid.offset.x;
+                      Util.toString state.grid.offset.y;
+                      Util.toString (1000. + state.grid.offset.x);
+                      Util.toString (1000. + state.grid.offset.y)
+                     ]
+                }
               ]
               [
                 svg.defs
@@ -259,8 +266,8 @@ let view (html : Msg Html.Html) state =
                   ] ;
                 svg.rect
                   [
-                    {name = "x" ; value = Util.toString 0} ;
-                    {name = "y" ; value = Util.toString 0} ;
+                    {name = "x" ; value = "0"} ;
+                    {name = "y" ; value = "0"} ;
                     {name = "width" ; value = "100000"} ;
                     {name = "height" ; value = "100000"} ;
                     {name = "style" ; value = "fill: url(#pt);"}
