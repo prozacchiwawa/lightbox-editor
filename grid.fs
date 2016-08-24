@@ -20,8 +20,11 @@ let create enabled offset interval =
 let snap point grid =
   if grid.enabled then
     let at = Point.subtract point grid.offset in
-    Point.ctor 
-      (Util.snap at.x grid.interval.x) 
-      (Util.snap at.y grid.interval.y)
+    Point.add
+      (Point.ctor 
+         (Util.snap at.x grid.interval.x) 
+         (Util.snap at.y grid.interval.y)
+      )
+      grid.offset
   else
     point
