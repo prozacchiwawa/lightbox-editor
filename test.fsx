@@ -147,13 +147,15 @@ let update action state =
   match Util.expose "action" (action,state.dragger) with
   | (NoOp,_) -> state
   | (MouseDown (x,y),None) ->
-     if x >= 0. && x < 1000. && y >= 0. && y < 1000. then
-       { state with dragger = Some { start = Point.ctor x y; dend = Point.ctor x y; action = Click } }
+     let pt = Grid.snap (Point.ctor x y) state.grid in
+     if pt.x >= 0. && pt.x < 1000. && pt.y >= 0. && pt.y < 1000. then
+       { state with dragger = Some { start = pt; dend = pt; action = Click } }
      else 
        state
   | (MouseUp (x,y),Some dragger) ->
      { performDragOp dragger with dragger = None }
   | (MouseMove (x,y),Some dragger) ->
+     let pt = Grid.snap (Point.ctor x y) state.grid in
      let draggerUL = 
        Point.ctor
          (Util.min 0. [dragger.start.x;dragger.dend.x])
@@ -168,9 +170,9 @@ let update action state =
        (draggerBR.x - draggerUL.x) + (draggerBR.y - draggerUL.y) 
      in
      if manhDistance > 4. then
-       { state with dragger = Some { dragger with dend = Point.ctor x y; action = Drag } }
+       { state with dragger = Some { dragger with dend = Point.ctor pt.x pt.y; action = Drag } }
      else 
-       { state with dragger = Some { dragger with dend = Point.ctor x y } }
+       { state with dragger = Some { dragger with dend = Point.ctor pt.x pt.y } }
   | (ControlMsg (Controls.ChangeBackground bg),_) ->
      { state with backgroundUrl = Util.log "Background" bg }
   | (ControlMsg (Controls.SelectPanel pid),_) ->

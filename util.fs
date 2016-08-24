@@ -64,7 +64,7 @@ let andMap f l = l |> List.map f |> List.concat
 
 let tuple2 a b = (a,b)
 
-[<Emit("(Math.floor($0 + 0.5) - 0.5)")>]
+[<Emit("Math.floor($0 + 0.5)")>]
 let round : float -> float = fun a -> failwith "JS only"
 
 let snap (a : float) (b : float) = (round (a / b)) * b
