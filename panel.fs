@@ -3,6 +3,7 @@ module Panel
 open Util
 open Point
 open CSS
+open VDom
 open Html
 
 type AxisPosition =
@@ -26,6 +27,9 @@ type Panel =
 
 type Msg =
   | NoOp
+  | MouseDown of MouseEvent
+  | MouseMove of MouseEvent
+  | MouseUp of MouseEvent
 
 let upperLeft p =
   let l = 
@@ -277,3 +281,4 @@ let view (html : Msg Html.Html) selected panel =
       )
   in
   viewPanel panel
+

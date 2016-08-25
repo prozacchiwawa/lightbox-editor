@@ -82,7 +82,13 @@ let update action state =
       |> (Panel.parent panel.id state.root)
       |> Util.headWithDefault state.root
     in
-    { state with selected = panel ; ui = Controls.select panel (Util.expose "Controls.select parent" parent) state.ui }
+    { state with 
+      selected = panel ; 
+      ui = 
+        Controls.select 
+          panel 
+          (Util.expose "Controls.select parent" parent) state.ui 
+    }
   in
   let createNewPanel parentCoords dragger =
     let draggerUL = 
@@ -107,9 +113,13 @@ let update action state =
   in
   let rec addChildWithId id child (parent : Panel) =
     if parent.id = id then
-      { parent with Panel.children = child :: parent.children }
+      { parent with 
+        Panel.children = child :: parent.children 
+      }
     else
-      { parent with Panel.children = List.map (addChildWithId id child) parent.children }
+      { parent with 
+        Panel.children = List.map (addChildWithId id child) parent.children 
+      }
   in
   let createChild dragger =
     state.root
@@ -124,7 +134,10 @@ let update action state =
          (fun (hd, offset) ->
            { state with 
              root = 
-               addChildWithId hd.id (createNewPanel offset dragger) state.root
+               addChildWithId 
+                 hd.id 
+                 (createNewPanel offset dragger) 
+                 state.root
            }
          )
     |> Util.headWithDefault state 
@@ -150,7 +163,9 @@ let update action state =
   | (MouseDown (x,y),None) ->
      let pt = Grid.snap (Point.ctor x y) state.grid in
      if pt.x >= 0. && pt.x < 1000. && pt.y >= 0. && pt.y < 1000. then
-       { state with dragger = Some { start = pt; dend = pt; action = Click } }
+       { state with 
+         dragger = Some { start = pt; dend = pt; action = Click } 
+       }
      else 
        state
   | (MouseUp (x,y),Some dragger) ->
@@ -171,9 +186,15 @@ let update action state =
        (draggerBR.x - draggerUL.x) + (draggerBR.y - draggerUL.y) 
      in
      if manhDistance > 4. then
-       { state with dragger = Some { dragger with dend = Point.ctor pt.x pt.y; action = Drag } }
+       { state with 
+         dragger = 
+           Some { dragger with dend = Point.ctor pt.x pt.y; action = Drag } 
+       }
      else 
-       { state with dragger = Some { dragger with dend = Point.ctor pt.x pt.y } }
+       { state with 
+         dragger = 
+           Some { dragger with dend = Point.ctor pt.x pt.y } 
+       }
   | (ControlMsg (Controls.ChangeBackground bg),_) ->
      { state with backgroundUrl = Util.log "Background" bg }
   | (ControlMsg (Controls.SelectPanel pid),_) ->
@@ -182,7 +203,11 @@ let update action state =
      |> Util.headWithDefault state.root
      |> (Util.flip selectPanel) state
   | (ControlMsg msg,_) -> 
-     let s0 = { state with dragger = None; ui = Controls.update msg state.ui } in
+     let s0 = 
+       { state with 
+         dragger = None; ui = Controls.update msg state.ui 
+       } 
+     in
      let s1 = { s0 with grid = s0.ui.grid } in
      if s1.ui.dirtyPanel then
        let (panel,ui) = Controls.takeUpdate s1.ui in
