@@ -9,6 +9,7 @@ open Fable.Import.Browser
 #load "vdom.fs"
 #load "html.fs"
 #load "css.fs"
+#load "gridrenderer.fs"
 #load "panel.fs"
 #load "input.fs"
 #load "controls.fs"
@@ -222,64 +223,6 @@ let view (html : Msg Html.Html) state =
            []
        ]
   in
-  let visualizeGrid =
-    let svg = html.svg in
-    let linePx x1 y1 x2 y2 =
-      svg.line
-        [
-          {name = "stroke" ; value = "black"};
-          {name = "x1" ; value = Util.toString x1} ;
-          {name = "y1" ; value = Util.toString y1} ;
-          {name = "x2" ; value = Util.toString x2} ;
-          {name = "y2" ; value = Util.toString y2}
-        ]
-    in
-    if state.grid.enabled then
-      [
-        html.div
-          [html.className "grid"]
-          []
-          [
-            svg.root 
-              [
-                {name = "width" ; value = "1000"} ;
-                {name = "height" ; value = "1000"} ;
-                {name = "viewBox" ; 
-                 value = 
-                   String.concat 
-                     " " 
-                     [Util.toString state.grid.offset.x;
-                      Util.toString state.grid.offset.y;
-                      Util.toString (1000. + state.grid.offset.x);
-                      Util.toString (1000. + state.grid.offset.y)
-                     ]
-                }
-              ]
-              [
-                svg.defs
-                  [
-                    svg.pattern
-                      "pt" 
-                      0. 0. state.grid.interval.x state.grid.interval.y
-                      [
-                        linePx 0. 0. state.grid.interval.x 0. ;
-                        linePx 0. 0. 0. state.grid.interval.y ;
-                      ]
-                  ] ;
-                svg.rect
-                  [
-                    {name = "x" ; value = "0"} ;
-                    {name = "y" ; value = "0"} ;
-                    {name = "width" ; value = "100000"} ;
-                    {name = "height" ; value = "100000"} ;
-                    {name = "style" ; value = "fill: url(#pt);"}
-                  ] [] []
-              ]
-          ]
-      ]
-    else
-      []
-  in
   let mapControlMsg : (Controls.Msg -> Msg) = 
     fun m -> ControlMsg m
   in
@@ -341,7 +284,7 @@ let view (html : Msg Html.Html) state =
                  (List.concat
                     [
                       visualizeDrag ;
-                      visualizeGrid
+                      GridRenderer.view html state.grid
                     ]
                  )
              ] ;

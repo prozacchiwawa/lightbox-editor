@@ -1,14 +1,14 @@
-all: out out/vdomtest.js
+all: out out/index.js
 
 clean:
-	rm -rf out js/test.js
+	rm -rf out js/index.js
 
 out:
 	mkdir $@
 
-js/test.js: test.fsx *.fs
+js/index.js: index.fsx *.fs
 	fable --projFile $< --outDir js
 
-out/vdomtest.js: js/test.js js/vdominterface.js
-	browserify -e js/testprog.js -o $@
+out/index.js: js/index.js js/vdominterface.js
+	browserify -e js/prog.js -o $@
 
