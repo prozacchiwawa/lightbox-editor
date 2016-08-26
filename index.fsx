@@ -50,7 +50,6 @@ type Msg =
   | MouseUp of float * float
   | MouseMove of float * float
   | ControlMsg of Controls.Msg
-  | PanelMsg of Panel.Msg
 
 let init arg =
   let root = 
@@ -279,7 +278,7 @@ let view (html : Msg Html.Html) state =
                html.div
                  (List.concat [ [html.className "root"]; backgroundSpecification ])
                  []
-                 [ Panel.view (Html.map (fun msg -> PanelMsg msg) html) state.selected.id state.root 
+                 [ Panel.view html state.selected.id state.root 
                  ] ;
                html.div
                  [html.className "dragger-container"]

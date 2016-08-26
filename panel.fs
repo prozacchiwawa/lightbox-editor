@@ -25,12 +25,6 @@ type Panel =
     children : Panel list ;
   }
 
-type Msg =
-  | NoOp
-  | MouseDown of MouseEvent
-  | MouseMove of MouseEvent
-  | MouseUp of MouseEvent
-
 let upperLeft p =
   let l = 
     match p.lr with
@@ -245,7 +239,7 @@ let setLRMeasure lr panel =
 let setTBMeasure tb panel =
   { panel with tb = tb }
 
-let view (html : Msg Html.Html) selected panel =
+let view (html : 'msg Html.Html) selected panel =
   let rec viewPanel (panel : Panel) =
     let panelClass = 
       if selected = panel.id then 
