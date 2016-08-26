@@ -1,4 +1,4 @@
-all: out out/index.js
+all: out out/index.js out/child.js
 
 clean:
 	rm -rf out js/index.js
@@ -11,4 +11,7 @@ js/index.js: index.fsx *.fs
 
 out/index.js: js/index.js js/vdominterface.js
 	browserify -e js/prog.js -o $@
+
+out/child.js: js/child.js js/vdominterface.js
+	browserify -e js/child.js -o $@
 

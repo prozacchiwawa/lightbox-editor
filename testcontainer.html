@@ -1,0 +1,36 @@
+<html>
+  <head>
+  </head>
+  <body>
+    <iframe id='test' src='child.html'>
+    </iframe>
+    <script>
+      var iframe = document.getElementById('test');
+      var running = false;
+      var post = function() {
+      iframe.contentWindow.postMessage({
+          type: 'render',
+          data: {
+              tag: 'div',
+              key: 'root',
+              attributes: {
+                  head: {
+                      name: 'style', 
+                      value:'left: 10%; top: 10%; width: 50%; height: 50%'}, 
+                  tail: {head: null, tail: null}
+              },
+              children: { head: "Test", tail: {head:null, tail:null} }
+          }
+      }, window.location.href);
+      };
+      window.addEventListener('message', function(evt) {
+          console.log(JSON.stringify(evt.data));
+          if (!running) {
+              running = true;
+              post();
+          }
+      });
+      console.log('post message',iframe.contentWindow);
+    </script>
+  </body>
+</html>
