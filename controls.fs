@@ -184,6 +184,8 @@ let update action state =
   match action with
   | ToggleControls ->
      { state with full = not state.full }
+  | BackgroundInput inp ->
+     { state with backgroundUrl = inp }
   | EditorMsg msg ->
      { state with editors = Input.update msg state.editors } |> 
        updatePanelFromEditor

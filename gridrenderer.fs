@@ -32,8 +32,8 @@ let view html grid =
                    " " 
                    [Util.toString grid.offset.x;
                     Util.toString grid.offset.y;
-                    Util.toString (1000. + grid.offset.x);
-                    Util.toString (1000. + grid.offset.y)
+                    Util.toString 1000.;
+                    Util.toString 1000.
                    ]
               }
             ]
