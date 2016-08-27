@@ -288,7 +288,7 @@ let view (html : Msg Html.Html) state =
              [html.className "root-container"] []
              [
                html.div
-                 (List.concat [ [html.className "root"]; backgroundSpecification ])
+                 [html.className "root"]
                  []
                  [
                    html.iframe 
@@ -297,6 +297,13 @@ let view (html : Msg Html.Html) state =
                             {name = "id"; value = "canvas-frame"};
                             {name = "src"; value = "child.html"}
                      ] [] [] ;
+                   html.div 
+                     (List.concat
+                        [
+                          [ html.className "image-overlay" ] ;
+                          backgroundSpecification
+                        ]
+                     ) [] [] ;
                    Wireframe.view html state.selected.id state.measure
                  ] ;
                html.div
