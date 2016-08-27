@@ -107,6 +107,22 @@ var post = function(stream) {
     };
 }
 
+var registeredWindowMessages = {};
+
+window.vdomAddEventListener = function(name,handler) {
+    registeredWindowMessages[name] = handler;
+}
+
+window.addEventListener('message', function(evt) {
+    var type = evt.data ? evt.data.ty : null;
+    if (type) {
+        var handler = registeredWindowMessages[type];
+        if (handler) {
+            handler(evt.data);
+        }
+    }
+});
+
 // Given an element and an elm-architecture-like main function, run the
 // given component.  Main takes an argument like the VDom type in vdom.fs,
 // and a passthrough argument to init.
@@ -114,7 +130,11 @@ function run(element, main, pass) {
     var rootElement = null;
     var oldTree = null;
     var msgStream = Bacon.Bus();
-    var program = main({ vnode: vnode, vtext, vtext, post: post(msgStream) });
+    var program = main({
+        vnode: vnode,
+        vtext: vtext,
+        post: post(msgStream)
+    });
     // Bacon's scan method is used here like foldp on a signal, taking an init
     // state and calling update for each message.
     var stateStream = msgStream.scan(program.init(pass), function(state,msg) {

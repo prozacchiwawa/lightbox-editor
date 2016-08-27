@@ -6,12 +6,11 @@ function mapNode(vdom, node) {
     if (typeof(node) == 'string') {
         return vdom.vtext(node);
     } else {
-        var namespace = node.namespace ? node.namespace : null;
+        var namespace = node.xmlns ? node.xmlns : null;
         var key = node.key;
-        var children = [];
         var c = node.children || {head:null, tail:null};
         var cout = {head:null, tail:null};
-        while (c.head !== null) {
+        while (c.head) {
             cout = {head:mapNode(vdom, c.head), tail:cout};
             c = c.tail;
         }
@@ -22,16 +21,16 @@ function mapNode(vdom, node) {
 }
 
 function sizeQuery(elem) {
-    var children = [];
+    var children = {head:null, tail:null};
     for (var i = 0; i < elem.childNodes.length; i++) {
         var child = elem.childNodes[i];
         if (child.nodeType === Node.ELEMENT_NODE) {
-            children.push(sizeQuery(child));
+            children = {head: sizeQuery(child), tail: children};
         }
     }
     var position = elem.getBoundingClientRect();
     var size = {
-        'type': 'panel',
+        'ty': 'panel',
         'key': elem.getAttribute('key'),
         'bounds': { 
             x: position.left, 
@@ -49,9 +48,8 @@ vdi.run(document.getElementById('app'), function(vdom) {
         return { root: null };
     };
     function update(evt, state) {
-        if (evt.type === 'render') {
-            console.log('evt',evt);
-            return { root: evt.data };
+        if (evt.ty === 'render') {
+            return { root: evt };
         }
         return state;
     };
@@ -61,18 +59,15 @@ vdi.run(document.getElementById('app'), function(vdom) {
         var scrollTop = $('#app').scrollTop();
         setTimeout(function() {
             window.parent.postMessage({
-                type: 'measure', 
+                ty: 'measure', 
                 scrollTop: scrollTop, 
                 data: sizeQuery(document.getElementById('app'))
             }, window.location.href);
         }, 0);
         return elem;
     };
-    window.addEventListener('message', function(evt) {
-        if (evt.data.type === 'render') {
-            console.log('msg', evt.data);
-            vdom.post(evt.data);
-        }
+    vdomAddEventListener('render', function(evt) {
+        vdom.post(evt);
     });
     return { init: init, update: update, view: view };
 }, null);

@@ -11,8 +11,10 @@ open Fable.Import.Browser
 #load "css.fs"
 #load "gridrenderer.fs"
 #load "layoutmgr.fs"
+#load "measure.fs"
 #load "panel.fs"
 #load "layoutmgrimpl.fs"
+#load "measurerender.fs"
 #load "input.fs"
 #load "controls.fs"
 
@@ -53,6 +55,7 @@ type Msg =
   | MouseUp of float * float
   | MouseMove of float * float
   | ControlMsg of Controls.Msg
+  | Measures of Measure.MeasureMsg
 
 let init arg =
   let root = 
@@ -283,7 +286,13 @@ let view (html : Msg Html.Html) state =
                html.div
                  (List.concat [ [html.className "root"]; backgroundSpecification ])
                  []
-                 [ Panel.view html state.selected.id state.root 
+                 [ 
+                   html.iframe 
+                     [
+                       html.className "canvas-frame";
+                       {name = "id"; value = "canvas-frame"};
+                       {name = "src"; value = "child.html"}
+                     ] [] []
                  ] ;
                html.div
                  [html.className "dragger-container"]
@@ -322,8 +331,33 @@ let view (html : Msg Html.Html) state =
        ]
     )
 
-let main vdom arg =
-  { VDom.init = init;
-    VDom.update = update;
+let updateAndEmit msg state =
+  begin
+    let st = update msg state in
+    match msg with
+    | Measures _ -> st
+    | _ ->
+       VDom.postIFrameMessage 
+         "canvas-frame"
+         (st.root.layout.view
+            []
+            (fun p -> p.layout)
+            (fun sty children panel -> MeasureRender.render sty children panel)
+            st.root
+         ) ;
+       st
+  end
+    
+let main (vdom : Msg VDom.VDom) arg =
+  let post : Msg -> unit = vdom.post in
+  { VDom.init = 
+      fun arg ->
+      begin
+        VDom.addWindowMessageHandler
+          "measure"
+          (fun msg -> vdom.post (Measures (Measure.toMeasure msg))) ;
+        init arg
+      end
+    VDom.update = updateAndEmit ;
     VDom.view = (view (Html.html vdom))
   }

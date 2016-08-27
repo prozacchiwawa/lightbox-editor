@@ -9,7 +9,7 @@
       var running = false;
       var post = function() {
       iframe.contentWindow.postMessage({
-          type: 'render',
+          ty: 'render',
           data: {
               tag: 'div',
               key: 'root',
@@ -27,7 +27,7 @@
           console.log(JSON.stringify(evt.data));
           if (!running) {
               running = true;
-              post();
+              vdom.post(evt.data);
           }
       });
       console.log('post message',iframe.contentWindow);

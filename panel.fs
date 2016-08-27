@@ -6,6 +6,7 @@ open CSS
 open VDom
 open Html
 open LayoutMgr
+open Measure
 
 type AxisPosition =
   |   LowGrav of float * float
@@ -24,7 +25,7 @@ type Panel =
     background : string ;
     id : string ;
     children : Panel list ;
-    layout : LayoutMgr.LayoutMgr<Panel,VDom.VNode>
+    layout : LayoutMgr.LayoutMgr<Panel,Measure.RenderMsg>
   }
 
 let upperLeft p =
@@ -241,6 +242,7 @@ let setLRMeasure lr panel =
 let setTBMeasure tb panel =
   { panel with tb = tb }
 
+(*
 let view (html : 'msg Html.Html) selected panel =
   let renderPanel styles children panel =
     let panelClass = 
@@ -269,4 +271,4 @@ let view (html : 'msg Html.Html) selected panel =
   in
   let getLayoutMgr p = p.layout in
   panel.layout.view [] getLayoutMgr renderPanel panel
-
+ *)

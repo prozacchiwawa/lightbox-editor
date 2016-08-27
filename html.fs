@@ -55,6 +55,11 @@ type 'Msg Html =
           VDom.Response list ->
           VDom.VNode list ->
           VDom.VNode ;
+      iframe :
+          VDom.Property list ->
+          VDom.Response list ->
+          VDom.VNode list ->
+          VDom.VNode ;
       svg : 'Msg Svg ;
       text : string -> VDom.VNode ;
       attribute : string -> string -> VDom.Property;
@@ -105,6 +110,7 @@ let html vdom =
     i = vdom.vnode "i" ;
     select = vdom.vnode "select" ;
     option = vdom.vnode "option" ;
+    iframe = vdom.vnode "iframe" ;
     svg =
       { vdom = vdom ;
         root = 
