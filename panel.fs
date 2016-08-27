@@ -5,6 +5,7 @@ open Point
 open CSS
 open VDom
 open Html
+open LayoutMgr
 
 type AxisPosition =
   |   LowGrav of float * float
@@ -23,6 +24,7 @@ type Panel =
     background : string ;
     id : string ;
     children : Panel list ;
+    layout : LayoutMgr.LayoutMgr<Panel,VDom.VNode>
   }
 
 let upperLeft p =
@@ -112,48 +114,43 @@ let parent id parent_ panel =
   |> Util.expose "parent"
   |> List.map (fun (parent,p) -> parent)
 
-let positionString p =
-  match p with
-  | Relative -> "relative"
-  | Absolute -> "absolute"
-
-let rec updateChildPositions p r =
-  let adjustChildPosition diffWidth diffHeight child =
-    let p1 =
-      match child.lr with
-      | MidCover (l,r) ->
-         { child with lr = MidCover (l,r + diffWidth) }
-      | HighGrav (w,r) ->
-         { child with lr = HighGrav (w,r + diffWidth) }
-      | _ -> child
-    in
-    let p2 =
-      match p1.tb with
-      | MidCover (t,b) ->
-         { p1 with tb = MidCover (t,b + diffHeight) }
-      | HighGrav (h,b) ->
-       { p1 with tb = HighGrav (h,b + diffHeight) }
-      | _ -> p1
-    in
-    updateChildPositions p2 child
-  in
-  let pUL = upperLeft p in
-  let pLR = lowerRight p in
-  let rUL = upperLeft r in
-  let rLR = lowerRight r in
-  let pWidth = pLR.x - pUL.x in
-  let pHeight = pLR.y - pUL.y in
-  let rWidth = rLR.x - rUL.x in
-  let rHeight = rLR.y - rUL.y in
-  let diffWidth = Util.log "diffWidth" (pWidth - rWidth) in
-  let diffHeight = Util.log "diffHeight" (pHeight - rHeight) in
-  { p with 
-    children =
-      r.children |>
-        List.map (adjustChildPosition diffWidth diffHeight)
-  }
-
 let rec replace p r =
+  let rec updateChildPositions p r =
+    let adjustChildPosition diffWidth diffHeight child =
+      let p1 =
+        match child.lr with
+        | MidCover (l,r) ->
+           { child with lr = MidCover (l,r + diffWidth) }
+        | HighGrav (w,r) ->
+           { child with lr = HighGrav (w,r + diffWidth) }
+        | _ -> child
+      in
+      let p2 =
+        match p1.tb with
+        | MidCover (t,b) ->
+           { p1 with tb = MidCover (t,b + diffHeight) }
+        | HighGrav (h,b) ->
+           { p1 with tb = HighGrav (h,b + diffHeight) }
+        | _ -> p1
+      in
+      updateChildPositions p2 child
+    in
+    let pUL = upperLeft p in
+    let pLR = lowerRight p in
+    let rUL = upperLeft r in
+    let rLR = lowerRight r in
+    let pWidth = pLR.x - pUL.x in
+    let pHeight = pLR.y - pUL.y in
+    let rWidth = rLR.x - rUL.x in
+    let rHeight = rLR.y - rUL.y in
+    let diffWidth = Util.log "diffWidth" (pWidth - rWidth) in
+    let diffHeight = Util.log "diffHeight" (pHeight - rHeight) in
+    { p with 
+      children =
+        r.children |>
+          List.map (adjustChildPosition diffWidth diffHeight)
+    }
+  in
   if r.id = p.id then
     updateChildPositions p r
   else
@@ -198,6 +195,11 @@ let yAxisPositionString a =
 let positionList = [ Absolute ; Relative ]
 let gravityList = [ MidCover (0.,0.); LowGrav (0.,0.); HighGrav (0.,0.) ]
 
+let positionString p =
+  match p with
+  | Relative -> "relative"
+  | Absolute -> "absolute"
+
 let stringToPosition s =
   let candidates =
     positionList |>
@@ -240,26 +242,17 @@ let setTBMeasure tb panel =
   { panel with tb = tb }
 
 let view (html : 'msg Html.Html) selected panel =
-  let rec viewPanel (panel : Panel) =
+  let renderPanel styles children panel =
     let panelClass = 
-      if selected = panel.id then 
+      if selected = panel.id then
         String.concat " " ["panel";"panel-selected"]
       else 
         "panel" 
     in
-    let draggerUL = upperLeft panel in
-    let draggerBR = lowerRight panel in
     html.div
       [
         html.className panelClass ;
-        html.style 
-          [
-            ("position", positionString panel.position);
-            ("left", CSS.pixelPos draggerUL.x);
-            ("top", CSS.pixelPos draggerUL.y);
-            ("width", CSS.pixelPos (draggerBR.x - draggerUL.x));
-            ("height", CSS.pixelPos (draggerBR.y - draggerUL.y))
-          ]
+        html.style styles 
       ]
       []
       (List.concat 
@@ -270,9 +263,10 @@ let view (html : 'msg Html.Html) selected panel =
                []
                [html.text (String.concat " " ["PANEL:";panel.id])]
            ];
-           List.map viewPanel panel.children
+           children
          ]
       )
   in
-  viewPanel panel
+  let getLayoutMgr p = p.layout in
+  panel.layout.view [] getLayoutMgr renderPanel panel
 

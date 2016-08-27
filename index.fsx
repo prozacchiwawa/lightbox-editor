@@ -10,7 +10,9 @@ open Fable.Import.Browser
 #load "html.fs"
 #load "css.fs"
 #load "gridrenderer.fs"
+#load "layoutmgr.fs"
 #load "panel.fs"
+#load "layoutmgrimpl.fs"
 #load "input.fs"
 #load "controls.fs"
 
@@ -18,6 +20,7 @@ type Point = Point.Point
 type Panel = Panel.Panel
 type UI = Controls.UI
 type Grid = Grid.Grid
+type FreeLayoutMgr = LayoutMgrImpl.FreeLayoutMgr
 
 type Color = { r : int ; b : int ; g : int ; a : int }
                
@@ -60,6 +63,7 @@ let init arg =
       Panel.tb = Panel.MidCover (0.,1000.) ;
       Panel.id = "root" ;
       Panel.children = [] ;
+      Panel.layout = new FreeLayoutMgr()
     }
   in
   let grid = Grid.create false (Point.ctor 0. 0.) (Point.ctor 16. 16.) in
@@ -107,7 +111,8 @@ let update action state =
       Panel.position = Panel.Absolute ;
       Panel.background = "" ;
       Panel.id = Util.genId () ;
-      Panel.children = [] 
+      Panel.children = [] ;
+      Panel.layout = new FreeLayoutMgr()
     }
   in
   let rec addChildWithId id child (parent : Panel) =
