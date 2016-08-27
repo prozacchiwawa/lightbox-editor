@@ -241,34 +241,3 @@ let setLRMeasure lr panel =
 
 let setTBMeasure tb panel =
   { panel with tb = tb }
-
-(*
-let view (html : 'msg Html.Html) selected panel =
-  let renderPanel styles children panel =
-    let panelClass = 
-      if selected = panel.id then
-        String.concat " " ["panel";"panel-selected"]
-      else 
-        "panel" 
-    in
-    html.div
-      [
-        html.className panelClass ;
-        html.style styles 
-      ]
-      []
-      (List.concat 
-         [
-           [
-             html.div
-               [html.className "panel-hide-layout"]
-               []
-               [html.text (String.concat " " ["PANEL:";panel.id])]
-           ];
-           children
-         ]
-      )
-  in
-  let getLayoutMgr p = p.layout in
-  panel.layout.view [] getLayoutMgr renderPanel panel
- *)

@@ -15,23 +15,25 @@ function mapNode(vdom, node) {
             c = c.tail;
         }
         var attributes = node.attributes || {head:null, tail:null};
+        attributes = {head:{name:'__key', value:key}, tail:attributes};
         var tag = node.tag;
         return vdom.vnode(tag)(attributes)({head:null, tail:null})(cout);
     }
 }
 
 function sizeQuery(elem) {
-    var children = {head:null, tail:null};
+    var children = [];
     for (var i = 0; i < elem.childNodes.length; i++) {
         var child = elem.childNodes[i];
-        if (child.nodeType === Node.ELEMENT_NODE) {
-            children = {head: sizeQuery(child), tail: children};
+        if (child.nodeType === Node.ELEMENT_NODE && 
+            child.getAttribute('__key')) {
+            children.push(sizeQuery(child));
         }
     }
     var position = elem.getBoundingClientRect();
     var size = {
         'ty': 'panel',
-        'key': elem.getAttribute('key'),
+        'key': elem.getAttribute('__key'),
         'bounds': { 
             x: position.left, 
             y: position.top, 
@@ -43,7 +45,9 @@ function sizeQuery(elem) {
     return size;
 }
 
-vdi.run(document.getElementById('app'), function(vdom) {
+var world = document.getElementById('app');
+vdi.run(world, function(vdom) {
+    world.setAttribute('__key','__primordial');
     function init(arg) {
         return { root: null };
     };
@@ -54,14 +58,22 @@ vdi.run(document.getElementById('app'), function(vdom) {
         return state;
     };
     function view(state) {
-        var root = state.root || {};
+        var root = state.root || {key: 'root', tag: 'div'};
         var elem = mapNode(vdom, root);
-        var scrollTop = $('#app').scrollTop();
+        var scrollTop = $(world).scrollTop();
+        function getSubElement(element) {
+            for (var i = 0; i < element.childNodes.length; i++) {
+                if (element.childNodes[i].nodeType == Node.ELEMENT_NODE) {
+                    return element.childNodes[i];
+                }
+            }
+            return element;
+        }
         setTimeout(function() {
             window.parent.postMessage({
                 ty: 'measure', 
                 scrollTop: scrollTop, 
-                data: sizeQuery(document.getElementById('app'))
+                data: sizeQuery(getSubElement(world)),
             }, window.location.href);
         }, 0);
         return elem;

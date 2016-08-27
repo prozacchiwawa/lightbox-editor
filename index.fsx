@@ -15,6 +15,7 @@ open Fable.Import.Browser
 #load "panel.fs"
 #load "layoutmgrimpl.fs"
 #load "measurerender.fs"
+#load "wireframe.fs"
 #load "input.fs"
 #load "controls.fs"
 
@@ -23,6 +24,7 @@ type Panel = Panel.Panel
 type UI = Controls.UI
 type Grid = Grid.Grid
 type FreeLayoutMgr = LayoutMgrImpl.FreeLayoutMgr
+type MeasureMsg = Measure.MeasureMsg
 
 type Color = { r : int ; b : int ; g : int ; a : int }
                
@@ -45,6 +47,7 @@ type State =
     dragger : Dragger option ;
     grid : Grid ;
     ui : UI ;
+    measure : MeasureMsg ;
   }
     
 type Msg = 
@@ -78,7 +81,8 @@ let init arg =
     dragger = None ;
     dragmode = Select ;
     grid = grid ;
-    ui = Controls.init grid root
+    ui = Controls.init grid root ;
+    measure = Measure.emptyMeasure ;
   }
 
 let update action state =
@@ -286,13 +290,14 @@ let view (html : Msg Html.Html) state =
                html.div
                  (List.concat [ [html.className "root"]; backgroundSpecification ])
                  []
-                 [ 
+                 [
                    html.iframe 
                      [
-                       html.className "canvas-frame";
-                       {name = "id"; value = "canvas-frame"};
-                       {name = "src"; value = "child.html"}
-                     ] [] []
+                            html.className "canvas-frame";
+                            {name = "id"; value = "canvas-frame"};
+                            {name = "src"; value = "child.html"}
+                     ] [] [] ;
+                   Wireframe.view html state.selected.id state.measure
                  ] ;
                html.div
                  [html.className "dragger-container"]
@@ -335,7 +340,7 @@ let updateAndEmit msg state =
   begin
     let st = update msg state in
     match msg with
-    | Measures _ -> st
+    | Measures m -> { st with measure = m }
     | _ ->
        VDom.postIFrameMessage 
          "canvas-frame"
