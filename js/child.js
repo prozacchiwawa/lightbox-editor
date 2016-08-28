@@ -1,8 +1,7 @@
 var vdi = require('./vdominterface');
 var $ = require('jquery');
 
-function mapNode(vdom, node) {
-    console.log(JSON.stringify(node));
+function mapNode(vdom, root, node) {
     if (typeof(node) == 'string') {
         return vdom.vtext(node);
     } else {
@@ -11,7 +10,7 @@ function mapNode(vdom, node) {
         var c = node.children || {head:null, tail:null};
         var cout = {head:null, tail:null};
         while (c.head) {
-            cout = {head:mapNode(vdom, c.head), tail:cout};
+            cout = {head:mapNode(vdom, false, c.head), tail:cout};
             c = c.tail;
         }
         var attributes = node.attributes || {head:null, tail:null};
@@ -59,7 +58,7 @@ vdi.run(world, function(vdom) {
     };
     function view(state) {
         var root = state.root || {key: 'root', tag: 'div'};
-        var elem = mapNode(vdom, root);
+        var elem = mapNode(vdom, true, root);
         var scrollTop = $(world).scrollTop();
         function getSubElement(element) {
             for (var i = 0; i < element.childNodes.length; i++) {

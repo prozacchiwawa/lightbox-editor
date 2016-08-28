@@ -6,7 +6,7 @@ open Measure
 
 type MR = Measure.RenderMsg
 
-let render styles children panel =
+let render styles children parent panel =
   { MR.ty = "render" ;
     MR.tag = "div" ;
     MR.key = panel.id ;

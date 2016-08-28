@@ -356,6 +356,7 @@ let updateAndEmit msg state =
             (fun p -> p.layout)
             (fun sty children panel -> MeasureRender.render sty children panel)
             st.root
+            st.root
          ) ;
        st
   end

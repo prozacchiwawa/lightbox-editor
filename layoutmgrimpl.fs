@@ -12,21 +12,22 @@ type RenderMsg = Measure.RenderMsg
 let innerLayoutView 
       (self : LayoutMgr<Panel, RenderMsg>) 
       styles getLayoutMgr 
-      (renderPanel : (string * string) list -> RenderMsg list -> Panel -> RenderMsg)
+      (renderPanel : (string * string) list -> RenderMsg list -> Panel -> Panel -> RenderMsg)
+      (parent : Panel)
       (panel : Panel)  =
-  let renderChild i p =
+  let renderChild parent i p =
     let layoutMgr : LayoutMgr<Panel, RenderMsg> = getLayoutMgr p in
     let styles = self.childStyles i p in
-    layoutMgr.view styles getLayoutMgr renderPanel p
+    layoutMgr.view styles getLayoutMgr renderPanel parent p
   in
-  let children = List.mapi renderChild panel.children in
+  let children = List.mapi (renderChild panel) panel.children in
   let styles = self.parentStyles panel in
-  renderPanel styles children panel
+  renderPanel styles children parent panel
                 
 type FreeLayoutMgr() =
   interface LayoutMgr<Panel, RenderMsg> with
-    member self.view styles getLayoutMgr renderPanel panel =
-      innerLayoutView self styles getLayoutMgr renderPanel panel
+    member self.view styles getLayoutMgr renderPanel parent panel =
+      innerLayoutView self styles getLayoutMgr renderPanel parent panel
     member self.childStyles idx panel = []
     member self.parentStyles panel =
       let draggerUL = upperLeft panel in

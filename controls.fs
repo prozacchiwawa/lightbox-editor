@@ -289,11 +289,16 @@ let view (html : Msg Html) state =
   [
     html.div
       [ html.className "control-toggle" ]
-      [ Html.onMouseClick html (fun evt -> ToggleControls) ]
+      []
       [ 
         html.i
-          [ html.className "fa fa-bars" ;
+          [ html.className "fa fa-trash-o" ;
             {name = "aria-hidden"; value = "true"} ] [] [] ;
+        html.i
+          [ html.className "fa fa-bars" ;
+            {name = "aria-hidden"; value = "true"} ]
+          [ Html.onMouseClick html (fun evt -> ToggleControls) ]
+          [] ;
       ] ;
     html.div
       [ html.className controlClass ] []

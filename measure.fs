@@ -1,6 +1,7 @@
 module Measure
 
 open Fable.Core
+open Point
 open VDom
 
 type MeasureBounds =
