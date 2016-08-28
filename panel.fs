@@ -157,6 +157,14 @@ let rec replace p r =
   else
     { r with children = List.map (replace p) r.children }
 
+let rec remove pid root =
+  { root with 
+    children = 
+      List.map 
+        (remove pid)
+        (List.filter (fun p -> p.id <> pid) root.children)
+  }
+
 let setLeft l p =
   match p.lr with
   | MidCover (l_,r) -> { p with lr = MidCover (l,r) }

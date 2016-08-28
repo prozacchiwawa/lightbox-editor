@@ -73,6 +73,10 @@ body {
     z-index: 3;
 }
 
+.control-toggle > i {
+    margin: 0.5vmin;
+}
+
 .control-width {
     width: 300px;
 }

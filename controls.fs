@@ -19,6 +19,7 @@ type Msg =
   | EditorMsg of Input.Msg
   | RootEdMsg of Input.Msg
   | SetGrid of Grid
+  | DeletePanel of string
 
 type UI =
   {
@@ -293,7 +294,9 @@ let view (html : Msg Html) state =
       [ 
         html.i
           [ html.className "fa fa-trash-o" ;
-            {name = "aria-hidden"; value = "true"} ] [] [] ;
+            {name = "aria-hidden"; value = "true"} ] 
+          [ Html.onMouseClick html (fun evt -> DeletePanel state.focused.id) ] 
+          [] ;
         html.i
           [ html.className "fa fa-bars" ;
             {name = "aria-hidden"; value = "true"} ]

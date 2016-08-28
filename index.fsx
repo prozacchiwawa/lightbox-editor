@@ -213,6 +213,14 @@ let update action state =
      |> Panel.fromId pid
      |> Util.headWithDefault state.root
      |> (Util.flip selectPanel) state
+  | (ControlMsg (Controls.DeletePanel pid),_) ->
+     let reselect = 
+       state.root
+       |> Panel.fromId pid
+       |> Util.headWithDefault state.root
+       |> (Util.flip selectPanel) state
+     in
+     { reselect with root = Panel.remove pid state.root }
   | (ControlMsg msg,_) -> 
      let s0 = 
        { state with 
