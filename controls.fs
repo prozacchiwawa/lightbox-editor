@@ -5,6 +5,7 @@ open Grid
 open Html
 open Panel
 open Input
+open PanelControls
 
 type Grid = Grid.Grid
 type Panel = Panel.Panel
@@ -16,10 +17,18 @@ type Msg =
   | ChangeBackground of string
   | ChangePanel of Panel
   | SelectPanel of string
-  | EditorMsg of Input.Msg
   | RootEdMsg of Input.Msg
   | SetGrid of Grid
   | DeletePanel of string
+  | ControlFragMsg of string * PanelControls.Msg
+  | ToggleSection of string
+
+type UISectionContainer =
+  {
+    name : string ;
+    hidden : bool ;
+    fragment : ControlInterface.ControlInterface<Panel,Msg>
+  }
 
 type UI =
   {
@@ -27,54 +36,11 @@ type UI =
     backgroundUrl : string ;
     parent : Panel ;
     focused : Panel ;
-    editors : Input.EditorSet ;
     rootEd : Input.EditorSet ;
     dirtyPanel : bool ;
     grid : Grid ;
+    sections : Map<string, UISectionContainer>
   }
-
-let foldInto f list init = List.fold f init list
-
-let makeEditors panel =
-  let ul = Panel.upperLeft panel in
-  let lr = Panel.lowerRight panel in
-  let createEditor name value = 
-    new InputEditor(
-          value, 
-          (fun value -> (Util.parseFloat value) <> None), 
-          ("numeric-input-good", "numeric-input-bad")
-        )
-  in
-  let createSelector name value vlist =
-    new InputSelector(
-          value,
-          vlist
-        )
-  in
-  (Input.init ()) |>
-    foldInto
-      (fun editors (name,value) -> 
-        Input.create name (createEditor name value) editors
-      )
-      [
-        ("Left", Util.toString ul.x);
-        ("Top", Util.toString ul.y);
-        ("Right", Util.toString lr.x);
-        ("Bottom", Util.toString lr.y);
-      ] |>
-    foldInto
-      (fun editors (name,value,vlist) -> 
-        let selector = createSelector name value (new Set<string>(vlist)) in
-        Input.create name selector editors
-      )
-      [
-        ("Horizontal Pos", 
-         Panel.xAxisPositionString panel.lr,
-         List.map Panel.xAxisPositionString Panel.gravityList);
-        ("Vertical Pos",
-         Panel.yAxisPositionString panel.tb,
-         List.map Panel.yAxisPositionString Panel.gravityList);
-      ]
 
 let makeRootEditors backgroundUrl grid =
   let createEditor name value = 
@@ -115,38 +81,46 @@ let makeRootEditors backgroundUrl grid =
         ("Grid Height", Util.toString grid.interval.y)
       ]
 
+let createEditors panel =
+  Map
+    [
+      (
+        "Panel",
+        { name = "Panel" ;
+          hidden = true ;
+          fragment = 
+            new PanelControls<Msg>
+              (panel, 
+               false, 
+               PanelControls.makeEditors panel, 
+               Html.map (fun msg -> ControlFragMsg ("Panel", msg)),
+               fun msg ->
+                 match msg with
+                 | ControlFragMsg ("Panel", msg) -> Some msg
+                 | _ -> None
+              )
+        }
+      )
+    ]
+    
 let init grid panel = 
   { full = false ; 
     backgroundUrl = "" ;
     parent = panel ;
     focused = panel ; 
-    editors = makeEditors panel ;
     rootEd = makeRootEditors "" grid ;
     dirtyPanel = false ;
     grid = grid ;
+    sections = createEditors panel
   }
 
 let select panel parent state =
   let _ = Util.log "Controls.select with" (panel.id, parent.id) in
-  { state with focused = panel ; parent = parent ; editors = makeEditors panel }
-
-let updatePanelWithValue name current value panel =
-  match Util.expose "updatePanelWithValue" (name,current,value) with
-  | ("Left",_,Some v) -> Panel.setLeft v panel
-  | ("Right",_,Some v) -> Panel.setRight v panel
-  | ("Top",_,Some v) -> Panel.setTop v panel
-  | ("Bottom",_,Some v) -> Panel.setBottom v panel
-  | ("Horizontal Pos",cv,_) -> 
-     let ul = Panel.upperLeft panel in
-     let lr = Panel.lowerRight panel in
-     let measure = Panel.xAxisStringToGravity cv ul.x lr.x in
-     Panel.setLRMeasure measure panel
-  | ("Vertical Pos",cv,_) ->
-     let ul = Panel.upperLeft panel in
-     let lr = Panel.lowerRight panel in
-     let measure = Panel.yAxisStringToGravity cv ul.y lr.y in
-     Panel.setTBMeasure measure panel
-  | _ -> panel
+  { state with 
+    focused = panel ; 
+    parent = parent ; 
+    sections = createEditors panel
+  }
 
 let updateRootWithValue name current value state =
   match (name,current,value) with
@@ -156,20 +130,6 @@ let updateRootWithValue name current value state =
   | ("Grid Width",_,Some value) -> { state with grid = { state.grid with interval = { state.grid.interval with x = value } } }
   | ("Grid Height",_,Some value) -> { state with grid = { state.grid with interval = { state.grid.interval with y = value } } }
   | _ -> state
-    
-let updatePanelFromEditor state =
-  { state with
-    dirtyPanel = true ;
-    focused = 
-      List.fold 
-        (fun panel ((name,editor) : (string * Input.EditorInstance)) ->
-          let cv = Util.log "cv" (editor.currentValue ()) in
-          let v = Util.log "v" (Util.parseFloat cv) in
-          updatePanelWithValue (Util.log "name" name) cv v panel
-        )
-        state.focused
-        (Input.map Util.tuple2 state.editors)
-  }
 
 let updateFromRootEditor state =
   List.fold 
@@ -187,12 +147,34 @@ let update action state =
      { state with full = not state.full }
   | BackgroundInput inp ->
      { state with backgroundUrl = inp }
-  | EditorMsg msg ->
-     { state with editors = Input.update msg state.editors } |> 
-       updatePanelFromEditor
   | RootEdMsg msg ->
      { state with rootEd = Input.update msg state.rootEd } |>
        updateFromRootEditor
+  | ToggleSection name ->
+     { state with 
+       sections =
+         match Map.tryFind name state.sections with
+         | None -> state.sections
+         | Some v -> Map.add name { v with hidden = not v.hidden } state.sections
+     }
+  | ControlFragMsg (name,msg) ->
+     match Map.tryFind name state.sections with
+     | None -> state
+     | Some v -> 
+        let updated = v.fragment.update action in
+        if updated.dirty () then
+          let (panel, newEditor) = updated.take () in
+          { state with
+            focused = panel ;
+            dirtyPanel = true ;
+            sections =
+              Map.add name { v with fragment = newEditor } state.sections
+          }
+        else
+          { state with 
+            sections = 
+              Map.add name { v with fragment = updated } state.sections
+          }
   | _ -> state
 
 let labeledInput html f name (inp : Input.EditorInstance) =
@@ -253,25 +235,57 @@ let panelDisplayHierRow (html : Msg Html) panel children =
 let rec panelChildren (html : Msg Html) panel =
   panelDisplayHierRow html panel (List.map (panelChildren html) panel.children)
 
-let panelControls (html : Msg Html) state panel =
-  let inputs =
-    Input.map (labeledInput html (fun msg -> EditorMsg msg)) state.editors
-  in
-  html.div
-    [] []
-    [
-      html.text (String.concat " " ["Panel"; state.focused.id]);
-      html.div [] [] (List.concat inputs)
-    ]
-
 let panelView (html : Msg Html) state =
+  let viewComponent html name ui =
+    html.div 
+      [] []
+      (List.concat
+         [
+           [ 
+             html.div 
+               [] [
+                 Html.onMouseClick 
+                   html 
+                   (fun evt -> ToggleSection name)
+               ]
+               [
+                 (if ui.hidden then
+                    html.i
+                      [ 
+                        html.className "fa fa-caret-square-o-right" ;
+                        {name = "aria-hidden"; value = "true"} 
+                      ] [] []
+                  else
+                    html.i
+                      [
+                        html.className "fa fa-caret-square-o-down" ;
+                        {name = "aria-hidden"; value = "true"}
+                      ] [] []
+                 ) ;
+                 html.text name
+               ]
+           ] ;
+           (if ui.hidden then
+              []
+            else
+              [ ui.fragment.view html ]
+           )
+         ]
+      )
+  in
   [ 
     html.div 
       [] [] 
-      [
-        panelControls html state state.focused ;
-        panelDisplayHierRow html state.parent [panelChildren html state.focused]
-      ]
+      (
+        List.concat
+          [
+            (state.sections 
+             |> Map.toList 
+             |> List.map (fun (n,ui) -> viewComponent html n ui)
+            ) ;
+            [ panelDisplayHierRow html state.parent [panelChildren html state.focused] ] ;
+          ]
+      )
   ]
 
 let view (html : Msg Html) state =

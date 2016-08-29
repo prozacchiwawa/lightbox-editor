@@ -17,6 +17,8 @@ open Fable.Import.Browser
 #load "measurerender.fs"
 #load "wireframe.fs"
 #load "input.fs"
+#load "controlinterface.fs"
+#load "panelcontrols.fs"
 #load "controls.fs"
 
 type Point = Point.Point
@@ -41,6 +43,7 @@ type State =
   { 
     palette : Map<string, Color> ;
     root : Panel ;
+    dirtyPanels : bool ;
     selected : Panel ;
     backgroundUrl : string ;
     dragmode : DragMode ;
@@ -78,6 +81,7 @@ let init arg =
     selected = root ;
     backgroundUrl = "" ;
     root = root ;
+    dirtyPanels = false ; 
     dragger = None ;
     dragmode = Select ;
     grid = grid ;
@@ -148,7 +152,8 @@ let update action state =
                addChildWithId 
                  hd.id 
                  (createNewPanel offset dragger) 
-                 state.root
+                 state.root ;
+             dirtyPanels = true 
            }
          )
     |> Util.headWithDefault state 
@@ -230,7 +235,11 @@ let update action state =
      let s1 = { s0 with grid = s0.ui.grid } in
      if s1.ui.dirtyPanel then
        let (panel,ui) = Controls.takeUpdate s1.ui in
-       { s1 with ui = ui ; root = Panel.replace panel s1.root }
+       { s1 with 
+         ui = ui ; 
+         root = Panel.replace panel s1.root ; 
+         dirtyPanels = true 
+       }
      else
        s1
   | _ -> state
@@ -278,9 +287,10 @@ let view (html : Msg Html.Html) state =
       [ html.style
           [
             ("background-image", String.concat "" ["url('";state.backgroundUrl;"')"]) ;
-            ("background-repeat", "none") ;
+            ("background-repeat", "no-repeat") ;
             ("background-position", "center top") ;
-            ("background-size", "contain") ;
+            ("background-size", "100% auto") ;
+            ("width", "1000px")
           ]
       ]
     else
@@ -357,16 +367,21 @@ let updateAndEmit msg state =
     match msg with
     | Measures m -> { st with measure = m }
     | _ ->
-       VDom.postIFrameMessage 
-         "canvas-frame"
-         (st.root.layout.view
-            []
-            (fun p -> p.layout)
-            (fun sty children panel -> MeasureRender.render sty children panel)
-            st.root
-            st.root
-         ) ;
-       st
+       if st.dirtyPanels then
+         begin
+           VDom.postIFrameMessage 
+             "canvas-frame"
+             (st.root.layout.view
+                []
+                (fun p -> p.layout)
+                (fun sty children panel -> MeasureRender.render sty children panel)
+                st.root
+                st.root
+             ) ;
+           { st with dirtyPanels = false }
+         end
+       else
+         st
   end
     
 let main (vdom : Msg VDom.VDom) arg =

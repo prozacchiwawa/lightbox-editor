@@ -69,3 +69,4 @@ let round : float -> float = fun a -> failwith "JS only"
 
 let snap (a : float) (b : float) = (round (a / b)) * b
 
+let foldInto f list init = List.fold f init list
