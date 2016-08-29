@@ -225,7 +225,7 @@ let update action state =
        |> Util.headWithDefault state.root
        |> (Util.flip selectPanel) state
      in
-     { reselect with root = Panel.remove pid state.root }
+     { reselect with root = Panel.remove pid state.root ; dirtyPanels = true }
   | (ControlMsg msg,_) -> 
      let s0 = 
        { state with 
