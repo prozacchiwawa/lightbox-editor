@@ -29,16 +29,25 @@ let updatePanelWithValue name current value panel =
      let lr = Panel.lowerRight panel in
      let measure = Panel.yAxisStringToGravity cv ul.y lr.y in
      Panel.setTBMeasure measure panel
+  | ("Background Color",cv,_) ->
+     { panel with background = cv }
   | _ -> panel
 
 let makeEditors panel =
   let ul = Panel.upperLeft panel in
   let lr = Panel.lowerRight panel in
-  let createEditor name value = 
+  let createNumEditor name value = 
     new InputEditor(
           value, 
           (fun value -> (Util.parseFloat value) <> None), 
           ("numeric-input-good", "numeric-input-bad")
+        )
+  in
+  let createTextEditor name value =
+    new InputEditor(
+          value,
+          (fun value -> true),
+          ("numeric-input-good", "numeric-input-good")
         )
   in
   let createSelector name value vlist =
@@ -50,7 +59,7 @@ let makeEditors panel =
   (Input.init ()) |>
     foldInto
       (fun editors (name,value) -> 
-        Input.create name (createEditor name value) editors
+        Input.create name (createNumEditor name value) editors
       )
       [
         ("Left", Util.toString ul.x);
@@ -70,6 +79,14 @@ let makeEditors panel =
         ("Vertical Pos",
          Panel.yAxisPositionString panel.tb,
          List.map Panel.yAxisPositionString Panel.gravityList);
+      ] |>
+    foldInto
+      (fun editors (name,value) ->
+        let editor = createTextEditor name value in
+        Input.create name editor editors
+      )
+      [
+        ("Background Color", panel.background)
       ]
 
 type 'msg PanelControls(panel : Panel, dirty : bool, editors : Input.EditorSet, hmap : ('msg Html -> Msg Html), select : 'msg -> Msg option) =

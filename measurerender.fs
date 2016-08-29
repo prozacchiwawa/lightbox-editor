@@ -6,7 +6,10 @@ open Measure
 
 type MR = Measure.RenderMsg
 
-let render styles children parent panel =
+let render styles' children parent panel =
+  let styles = 
+    List.concat [ styles' ; [ ("background-color", panel.background) ] ]
+  in
   { MR.ty = "render" ;
     MR.tag = "div" ;
     MR.key = panel.id ;
