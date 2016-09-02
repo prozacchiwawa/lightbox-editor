@@ -1,4 +1,6 @@
-all: out out/index.js out/child.js out/storagetestprog.js
+JS_SOURCES=$(wildcard js/*interface.js) $(wildcard js/*.prog.js)
+
+all: out out/index.js out/child.js out/storagetestprog.js out/ziptestprog.js
 
 clean:
 	rm -rf out js/index.js
@@ -9,14 +11,20 @@ out:
 js/index.js: index.fsx *.fs
 	fable --projFile $< --outDir js
 
-out/index.js: js/index.js js/vdominterface.js
+out/index.js: js/index.js js/vdominterface.js $(JS_SOURCES)
 	browserify -e js/prog.js -o $@
 
-out/child.js: js/child.js js/vdominterface.js
+out/child.js: js/child.js js/vdominterface.js $(JS_SOURCES)
 	browserify -e js/child.js -o $@
 
 js/storagetest.js: storagetest.fsx *.fs
 	fable --projFile $< --outDir js
 
-out/storagetestprog.js: js/storagetestprog.js js/storagetest.js js/qinterface.js
+js/ziptest.js: ziptest.fsx *.fs
+	fable --projFile $< --outDir js
+
+out/storagetestprog.js: js/storagetestprog.js js/storagetest.js js/qinterface.js $(JS_SOURCES)
 	browserify -e js/storagetestprog.js -o $@
+
+out/ziptestprog.js: js/ziptestprog.js js/ziptest.js js/qinterface.js $(JS_SOURCES)
+	browserify -e js/ziptestprog.js -o $@

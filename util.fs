@@ -2,6 +2,12 @@ module Util
 
 open Fable.Core
 
+[<Emit("btoa($0)")>]
+let btoa : string -> string = fun s -> failwith "JS"
+
+[<Emit("atob($0)")>]
+let atob : string -> string = fun s -> failwith "JS"
+
 [<Emit("{ console.log($0,$1); return $1; }")>]
 let log : string -> 'a -> 'a = fun s o -> failwith "JS only"
 

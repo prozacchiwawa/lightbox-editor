@@ -29,6 +29,6 @@ module.exports.complete = function(p,f) {
 }
 
 module.exports.error = function(p,f) {
-    return p.fail(f);
+    return (new q(p)).fail(f);
 }
 
