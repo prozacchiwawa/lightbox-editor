@@ -20,6 +20,9 @@ open Fable.Import.Browser
 #load "controlinterface.fs"
 #load "panelcontrols.fs"
 #load "controls.fs"
+#load "q.fs"
+#load "storage.fs"
+#load "localstorage.fs"
 
 type Point = Point.Point
 type Panel = Panel.Panel
@@ -88,6 +91,13 @@ let init arg =
     ui = Controls.init grid root ;
     measure = Measure.emptyMeasure ;
   }
+
+(*
+let save state =
+  Serialize.map
+    [ ("backgroundUrl", Serialize.string state.backgroundUrl) ;
+    ]
+ *)
 
 let update action state =
   let selectPanel (panel : Panel) state =
