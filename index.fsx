@@ -23,6 +23,8 @@ open Fable.Import.Browser
 #load "q.fs"
 #load "storage.fs"
 #load "localstorage.fs"
+#load "timer.fs"
+#load "serialize.fs"
 
 type Point = Point.Point
 type Panel = Panel.Panel
@@ -54,6 +56,8 @@ type State =
     grid : Grid ;
     ui : UI ;
     measure : MeasureMsg ;
+    inactivityTimerId : int ;
+    localStorage : Storage.Storage ;
   }
     
 type Msg = 
@@ -65,6 +69,8 @@ type Msg =
   | MouseMove of float * float
   | ControlMsg of Controls.Msg
   | Measures of Measure.MeasureMsg
+  | Inactivity
+  | Save
 
 let init arg =
   let root = 
@@ -75,7 +81,7 @@ let init arg =
       Panel.tb = Panel.MidCover (0.,1000.) ;
       Panel.id = "root" ;
       Panel.children = [] ;
-      Panel.layout = new FreeLayoutMgr()
+      Panel.layout = new FreeLayoutMgr() ;
     }
   in
   let grid = Grid.create false (Point.ctor 0. 0.) (Point.ctor 16. 16.) in
@@ -90,14 +96,15 @@ let init arg =
     grid = grid ;
     ui = Controls.init grid root ;
     measure = Measure.emptyMeasure ;
+    inactivityTimerId = -1 ;
+    localStorage = new LocalStorage.LocalStorage() :> Storage.Storage
   }
 
-(*
 let save state =
-  Serialize.map
-    [ ("backgroundUrl", Serialize.string state.backgroundUrl) ;
-    ]
- *)
+  [ ("backgroundUrl", Serialize.string state.backgroundUrl)
+  ]
+  |> Map<string, Serialize.Subkey>
+  |> Serialize.dict
 
 let update action state =
   let selectPanel (panel : Panel) state =
@@ -306,6 +313,9 @@ let view (html : Msg Html.Html) state =
     else
       []
   in
+  let wireframe = 
+    Wireframe.view html state.selected.id state.measure
+  in
   html.div
     [html.className "app-container"]
     []
@@ -332,7 +342,7 @@ let view (html : Msg Html.Html) state =
                           backgroundSpecification
                         ]
                      ) [] [] ;
-                   Wireframe.view html state.selected.id state.measure
+                   wireframe
                  ] ;
                html.div
                  [html.className "dragger-container"]
@@ -393,6 +403,25 @@ let updateAndEmit msg state =
        else
          st
   end
+
+let updateWithTimer post msg state =
+  begin
+    let st = updateAndEmit msg state in
+    match msg with
+    | Inactivity ->
+       begin
+         st
+         |> save 
+         |> Serialize.subkeyToJson 
+         |> (fun j -> Serialize.stringify j)
+         |> st.localStorage.set "autosave" ;
+         { st with inactivityTimerId = -1 }
+       end
+    | _ ->
+       let _ = Timer.clearTimeout st.inactivityTimerId in
+       let newTimerId = Timer.setTimeout (fun _ -> post Inactivity) 5000. in
+       { st with inactivityTimerId = newTimerId }
+  end
     
 let main (vdom : Msg VDom.VDom) arg =
   let post : Msg -> unit = vdom.post in
@@ -404,6 +433,6 @@ let main (vdom : Msg VDom.VDom) arg =
           (fun msg -> vdom.post (Measures (Measure.toMeasure msg))) ;
         init arg
       end
-    VDom.update = updateAndEmit ;
+    VDom.update = (fun msg state -> updateWithTimer post msg state) ;
     VDom.view = (view (Html.html vdom))
   }

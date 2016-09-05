@@ -50,11 +50,13 @@ vdi.run(world, function(vdom) {
     function init(arg) {
         return { root: null };
     };
-    function update(evt, state) {
-        if (evt.ty === 'render') {
-            return { root: evt };
-        }
-        return state;
+    function update(evt) {
+        return function(state) {
+            if (evt.ty === 'render') {
+                return { root: evt };
+            }
+            return state;
+        };
     };
     function view(state) {
         var root = state.root || {key: 'root', tag: 'div'};

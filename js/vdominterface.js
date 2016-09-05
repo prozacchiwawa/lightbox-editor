@@ -138,7 +138,7 @@ function run(element, main, pass) {
     // Bacon's scan method is used here like foldp on a signal, taking an init
     // state and calling update for each message.
     var stateStream = msgStream.scan(program.init(pass), function(state,msg) {
-        return program.update(msg, state);
+        return program.update(msg)(state);
     });
     // domStream is a stream of VNode describing the UI.
     var domStream = stateStream.map(function (state) {

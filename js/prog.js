@@ -2,6 +2,8 @@
 var vdi = require('./vdominterface');
 var shortid = require('shortid');
 var index = require('./index');
+window.objinterface = require('./objinterface');
+window.qpromise = require('./qinterface');
 
 window.generateId = shortid.generate;
 
