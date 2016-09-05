@@ -26,6 +26,8 @@ open Fable.Import.Browser
 #load "timer.fs"
 #load "serialize.fs"
 
+open Q
+
 type Point = Point.Point
 type Panel = Panel.Panel
 type UI = Controls.UI
@@ -71,6 +73,8 @@ type Msg =
   | Measures of Measure.MeasureMsg
   | Inactivity
   | Save
+  | LoadAutosave
+  | AutosaveLoaded of Serialize.Subkey
 
 let init arg =
   let root = 
@@ -404,6 +408,21 @@ let updateAndEmit msg state =
          st
   end
 
+let combineWithState subkey state =
+  let combineWithState_ m state =
+    Map.fold 
+      (fun state key v ->
+         match (key,v) with
+         | ("backgroundUrl",Serialize.String bgurl) -> 
+            { state with backgroundUrl = bgurl }
+         | _ -> state
+      )
+      state m
+  in
+  match subkey with
+  | Serialize.Dict d -> combineWithState_ d state
+  | _ -> state
+
 let updateWithTimer post msg state =
   begin
     let st = updateAndEmit msg state in
@@ -417,6 +436,17 @@ let updateWithTimer post msg state =
          |> st.localStorage.set "autosave" ;
          { st with inactivityTimerId = -1 }
        end
+    | LoadAutosave ->
+       st.localStorage.get "autosave" 
+       ||> Util.expose "autosave"
+       ||> (fun s -> 
+        Serialize.parse 
+          (fun e -> Serialize.jsnull () |> Serialize.subkeyToJson) s)
+       ||> (fun j -> Serialize.jsonToSubkey j)
+       ||> (fun sk -> post (AutosaveLoaded sk))
+       st
+    | AutosaveLoaded j ->
+       combineWithState j state
     | _ ->
        let _ = Timer.clearTimeout st.inactivityTimerId in
        let newTimerId = Timer.setTimeout (fun _ -> post Inactivity) 5000. in
@@ -431,8 +461,9 @@ let main (vdom : Msg VDom.VDom) arg =
         VDom.addWindowMessageHandler
           "measure"
           (fun msg -> vdom.post (Measures (Measure.toMeasure msg))) ;
+        Timer.setTimeout (fun _ -> post LoadAutosave) 0. ;
         init arg
       end
     VDom.update = (fun msg state -> updateWithTimer post msg state) ;
-    VDom.view = (view (Html.html vdom))
+    VDom.view = (view (Html.html vdom)) ;
   }

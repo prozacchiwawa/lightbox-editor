@@ -66,8 +66,8 @@ let rec jsonToSubkey v =
     }
     v
 
-[<Emit("JSON.parse($0)")>]
-let parse : string -> Json = fun s -> failwith "JS"
+[<Emit("{ try { return JSON.parse($1); } catch(e) { return ($0)(''+e); } }")>]
+let parse : (string -> Json) -> string -> Json = fun s e -> failwith "JS"
 
 [<Emit("JSON.stringify($0)")>]
 let stringify : Json -> string = fun s -> failwith "JS"

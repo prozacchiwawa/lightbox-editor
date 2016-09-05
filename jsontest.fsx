@@ -24,7 +24,11 @@ let tests =
 let testValue kn =
   let n = subkeyToJson kn in
   let ns = stringify n in
-  let np = parse ns in
+  let np = 
+    parse 
+      (fun e -> Serialize.jsnull () |> Serialize.subkeyToJson) 
+      ns 
+  in
   let nk = jsonToSubkey np in
   log "subkey" kn ;
   log "value" n ;
