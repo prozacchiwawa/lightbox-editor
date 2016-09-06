@@ -48,6 +48,7 @@ var world = document.getElementById('app');
 vdi.run(world, function(vdom) {
     world.setAttribute('__key','__primordial');
     function init(arg) {
+        window.parent.postMessage({ty: 'init'}, window.location.href);
         return { root: null };
     };
     function update(evt) {

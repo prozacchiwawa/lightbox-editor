@@ -3,14 +3,12 @@ module.exports.keysOf = function(j) {
     for (var k in j) { 
         keys.push(k); 
     } 
-    console.log(j,'=>',keys);
     return keys;
 }
 
 module.exports.getKey = function(k,j) {
     var r = (j)[k];
-    console.log('get',k,'from',j,'=>',r);
-    return r ? r : null;
+    return (r !== undefined) ? r : null;
 }
 
 module.exports.jsonToSubkey = function(ctors,v) {
@@ -32,7 +30,6 @@ module.exports.jsonToSubkey = function(ctors,v) {
 
 module.exports.jsonMap = function(m) {
     var res = {};
-    console.log(m);
     for (var i = 0; i < m.length; i++) {
         var e = m[i];
         res[e[0]] = e[1];

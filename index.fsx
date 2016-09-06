@@ -8,6 +8,7 @@ open Fable.Import.Browser
 #load "grid.fs"
 #load "vdom.fs"
 #load "html.fs"
+#load "serializedata.fs"
 #load "css.fs"
 #load "gridrenderer.fs"
 #load "layoutmgr.fs"
@@ -25,6 +26,8 @@ open Fable.Import.Browser
 #load "localstorage.fs"
 #load "timer.fs"
 #load "serialize.fs"
+#load "layoutmgrload.fs"
+#load "panelserialize.fs"
 
 open Q
 
@@ -74,7 +77,8 @@ type Msg =
   | Inactivity
   | Save
   | LoadAutosave
-  | AutosaveLoaded of Serialize.Subkey
+  | AutosaveLoaded of SerializeData.Subkey
+  | Rerender
 
 let init arg =
   let root = 
@@ -105,10 +109,10 @@ let init arg =
   }
 
 let save state =
-  [ ("backgroundUrl", Serialize.string state.backgroundUrl)
+  [ ("backgroundUrl", SerializeData.string state.backgroundUrl) ;
+    ("root", PanelSerialize.save state.root)
   ]
-  |> Map<string, Serialize.Subkey>
-  |> Serialize.dict
+  |> SerializeData.map
 
 let update action state =
   let selectPanel (panel : Panel) state =
@@ -385,47 +389,47 @@ let view (html : Msg Html.Html) state =
        ]
     )
 
-let updateAndEmit msg state =
-  begin
-    let st = update msg state in
-    match msg with
-    | Measures m -> { st with measure = m }
-    | _ ->
-       if st.dirtyPanels then
-         begin
-           VDom.postIFrameMessage 
-             "canvas-frame"
-             (st.root.layout.view
-                []
-                (fun p -> p.layout)
-                (fun sty children panel -> MeasureRender.render sty children panel)
-                st.root
-                st.root
-             ) ;
-           { st with dirtyPanels = false }
-         end
-       else
-         st
-  end
-
 let combineWithState subkey state =
   let combineWithState_ m state =
     Map.fold 
       (fun state key v ->
          match (key,v) with
-         | ("backgroundUrl",Serialize.String bgurl) -> 
+         | ("backgroundUrl",SerializeData.String bgurl) -> 
             { state with backgroundUrl = bgurl }
+         | ("root",root) ->
+            { state with root = PanelSerialize.load root ; dirtyPanels = true }
          | _ -> state
       )
       state m
   in
   match subkey with
-  | Serialize.Dict d -> combineWithState_ d state
+  | SerializeData.Dict d -> combineWithState_ d state
   | _ -> state
+
+let pushUpdate state =
+  VDom.postIFrameMessage 
+    "canvas-frame"
+    (state.root.layout.view
+       []
+       (fun p -> p.layout)
+       (fun sty children panel -> MeasureRender.render sty children panel)
+       state.root
+       state.root
+    ) ;
+  { state with dirtyPanels = false }
+             
+let clearTimeout state =
+  let _ = Timer.clearTimeout state.inactivityTimerId in
+  { state with inactivityTimerId = -1 }
+
+let resetTimeout post state = 
+  let _ = Timer.clearTimeout state.inactivityTimerId in
+  let newTimerId = Timer.setTimeout (fun _ -> post Inactivity) 5000. in
+  { state with inactivityTimerId = newTimerId }
 
 let updateWithTimer post msg state =
   begin
-    let st = updateAndEmit msg state in
+    let st = update msg state in
     match msg with
     | Inactivity ->
        begin
@@ -434,25 +438,42 @@ let updateWithTimer post msg state =
          |> Serialize.subkeyToJson 
          |> (fun j -> Serialize.stringify j)
          |> st.localStorage.set "autosave" ;
-         { st with inactivityTimerId = -1 }
+         st 
+         |> clearTimeout 
        end
     | LoadAutosave ->
        st.localStorage.get "autosave" 
        ||> Util.expose "autosave"
        ||> (fun s -> 
         Serialize.parse 
-          (fun e -> Serialize.jsnull () |> Serialize.subkeyToJson) s)
+          (fun e -> SerializeData.jsnull () |> Serialize.subkeyToJson) s)
        ||> (fun j -> Serialize.jsonToSubkey j)
        ||> (fun sk -> post (AutosaveLoaded sk))
-       st
+       st 
+       |> clearTimeout
     | AutosaveLoaded j ->
-       combineWithState j state
-    | _ ->
-       let _ = Timer.clearTimeout st.inactivityTimerId in
-       let newTimerId = Timer.setTimeout (fun _ -> post Inactivity) 5000. in
-       { st with inactivityTimerId = newTimerId }
+       combineWithState j state |> clearTimeout
+    | _ -> resetTimeout post st
   end
     
+let updateAndEmit post msg state =
+  begin
+    let st = updateWithTimer post msg state in
+    match msg with
+    | Measures m -> { st with measure = m }
+    | Inactivity -> st
+    | LoadAutosave -> st
+    | Rerender -> pushUpdate st
+    | _ ->
+       begin
+         Util.log "visualUpdate" (st.dirtyPanels, msg) ;
+         if st.dirtyPanels then
+           pushUpdate st
+         else
+           st
+       end
+  end
+
 let main (vdom : Msg VDom.VDom) arg =
   let post : Msg -> unit = vdom.post in
   { VDom.init = 
@@ -461,9 +482,12 @@ let main (vdom : Msg VDom.VDom) arg =
         VDom.addWindowMessageHandler
           "measure"
           (fun msg -> vdom.post (Measures (Measure.toMeasure msg))) ;
+        VDom.addWindowMessageHandler
+          "init"
+          (fun msg -> vdom.post Rerender) ;
         Timer.setTimeout (fun _ -> post LoadAutosave) 0. ;
         init arg
       end
-    VDom.update = (fun msg state -> updateWithTimer post msg state) ;
+    VDom.update = (fun msg state -> updateAndEmit post msg state) ;
     VDom.view = (view (Html.html vdom)) ;
   }

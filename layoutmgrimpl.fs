@@ -40,3 +40,5 @@ type FreeLayoutMgr() =
         ("height", CSS.pixelPos (draggerBR.y - draggerUL.y))
       ]
     member self.update msg = self :> LayoutMgr<Panel, RenderMsg>
+    member self.serialize panel =
+      SerializeData.map [ ("type", SerializeData.string "FreeLayoutMgr") ]

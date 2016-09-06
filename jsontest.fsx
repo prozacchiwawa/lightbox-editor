@@ -4,9 +4,11 @@ open Fable.Core
 open Fable.Import.Browser
 
 #load "util.fs"
+#load "serializedata.fs"
 #load "serialize.fs"
 
 open Util
+open SerializeData
 open Serialize
 
 let log = Util.expose
@@ -26,7 +28,7 @@ let testValue kn =
   let ns = stringify n in
   let np = 
     parse 
-      (fun e -> Serialize.jsnull () |> Serialize.subkeyToJson) 
+      (fun e -> jsnull () |> Serialize.subkeyToJson) 
       ns 
   in
   let nk = jsonToSubkey np in

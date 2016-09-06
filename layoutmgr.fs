@@ -1,5 +1,7 @@
 module LayoutMgr
 
+open SerializeData
+
 type Msg =
   | NoOp
   | MouseDown of float * float
@@ -25,3 +27,4 @@ type ('p,'r) LayoutMgr =
   abstract member childStyles : int -> 'p -> Styles
   abstract member parentStyles : 'p -> Styles
   abstract member update : Msg -> ('p,'r) LayoutMgr
+  abstract member serialize : 'p -> SerializeData.Subkey
