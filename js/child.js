@@ -16,6 +16,11 @@ function mapNode(vdom, root, node) {
         var attributes = node.attributes || {head:null, tail:null};
         attributes = {head:{name:'__key', value:key}, tail:attributes};
         var tag = node.tag;
+        // Prepend text
+        var text = node.text;
+        if (text) {
+            cout = {head:text, tail:cout};
+        }
         return vdom.vnode(tag)(attributes)({head:null, tail:null})(cout);
     }
 }

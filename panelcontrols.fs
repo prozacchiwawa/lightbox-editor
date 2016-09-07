@@ -15,27 +15,13 @@ type Msg =
 
 let updatePanelWithValue name current value panel =
   match Util.expose "updatePanelWithValue" (name,current,value) with
-  | ("Left",_,Some v) -> Panel.setLeft v panel
-  | ("Right",_,Some v) -> Panel.setRight v panel
-  | ("Top",_,Some v) -> Panel.setTop v panel
-  | ("Bottom",_,Some v) -> Panel.setBottom v panel
-  | ("Horizontal Pos",cv,_) -> 
-     let ul = Panel.upperLeft panel in
-     let lr = Panel.lowerRight panel in
-     let measure = Panel.xAxisStringToGravity cv ul.x lr.x in
-     Panel.setLRMeasure measure panel
-  | ("Vertical Pos",cv,_) ->
-     let ul = Panel.upperLeft panel in
-     let lr = Panel.lowerRight panel in
-     let measure = Panel.yAxisStringToGravity cv ul.y lr.y in
-     Panel.setTBMeasure measure panel
+  | ("Text",cv,_) ->
+     { panel with text = cv }
   | ("Background Color",cv,_) ->
      { panel with background = cv }
   | _ -> panel
 
 let makeEditors panel =
-  let ul = Panel.upperLeft panel in
-  let lr = Panel.lowerRight panel in
   let createNumEditor name value = 
     new InputEditor(
           value, 
@@ -62,10 +48,6 @@ let makeEditors panel =
         Input.create name (createNumEditor name value) editors
       )
       [
-        ("Left", Util.toString ul.x);
-        ("Top", Util.toString ul.y);
-        ("Right", Util.toString lr.x);
-        ("Bottom", Util.toString lr.y);
       ] |>
     foldInto
       (fun editors (name,value,vlist) -> 
@@ -73,12 +55,6 @@ let makeEditors panel =
         Input.create name selector editors
       )
       [
-        ("Horizontal Pos", 
-         Panel.xAxisPositionString panel.lr,
-         List.map Panel.xAxisPositionString Panel.gravityList);
-        ("Vertical Pos",
-         Panel.yAxisPositionString panel.tb,
-         List.map Panel.yAxisPositionString Panel.gravityList);
       ] |>
     foldInto
       (fun editors (name,value) ->
@@ -86,6 +62,7 @@ let makeEditors panel =
         Input.create name editor editors
       )
       [
+        ("Text", panel.text) ;
         ("Background Color", panel.background)
       ]
 

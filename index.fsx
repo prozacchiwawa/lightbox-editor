@@ -35,7 +35,6 @@ type Point = Point.Point
 type Panel = Panel.Panel
 type UI = Controls.UI
 type Grid = Grid.Grid
-type FreeLayoutMgr = LayoutMgrImpl.FreeLayoutMgr
 type MeasureMsg = Measure.MeasureMsg
 
 type Color = { r : int ; b : int ; g : int ; a : int }
@@ -44,8 +43,8 @@ type DragMode =
   | Select
                
 type DragAction =
+  | DragNoOp
   | Click
-  | Drag
 
 type Dragger = { start : Point; dend : Point; action : DragAction } 
                  
@@ -83,13 +82,11 @@ type Msg =
 let init arg =
   let root = 
     { 
-      Panel.position = Panel.Absolute ;
-      Panel.background = "" ;
-      Panel.lr = Panel.MidCover (0.,1000.) ;
-      Panel.tb = Panel.MidCover (0.,1000.) ;
       Panel.id = "root" ;
+      Panel.text = "" ;
+      Panel.background = "" ;
       Panel.children = [] ;
-      Panel.layout = new FreeLayoutMgr() ;
+      Panel.layout = new LayoutMgrImpl.FlexLayoutMgr(LayoutMgrImpl.FlexColumn) ;
     }
   in
   let grid = Grid.create false (Point.ctor 0. 0.) (Point.ctor 16. 16.) in
@@ -129,65 +126,15 @@ let update action state =
           (Util.expose "Controls.select parent" parent) state.ui 
     }
   in
-  let createNewPanel parentCoords dragger =
-    let draggerUL = 
-      Point.ctor
-        (Util.min 0. [dragger.start.x;dragger.dend.x])
-        (Util.min 0. [dragger.start.y;dragger.dend.y])
-    in
-    let draggerBR = 
-      Point.ctor
-        (Util.max 0. [dragger.start.x;dragger.dend.x])
-        (Util.max 0. [dragger.start.y;dragger.dend.y])
-    in
-    let finalUL = Point.subtract draggerUL parentCoords in
-    let finalBR = Point.subtract draggerBR parentCoords in
-    { Panel.lr = Panel.LowGrav (finalUL.x, finalBR.x - finalUL.x) ;
-      Panel.tb = Panel.LowGrav (finalUL.y, finalBR.y - finalUL.y) ;
-      Panel.position = Panel.Absolute ;
-      Panel.background = "" ;
-      Panel.id = Util.genId () ;
-      Panel.children = [] ;
-      Panel.layout = new FreeLayoutMgr()
-    }
-  in
-  let rec addChildWithId id child (parent : Panel) =
-    if parent.id = id then
-      { parent with 
-        Panel.children = child :: parent.children 
-      }
-    else
-      { parent with 
-        Panel.children = List.map (addChildWithId id child) parent.children 
-      }
-  in
-  let createChild dragger =
-    state.root
-    |> Panel.fromCoord dragger.start
-    |> Util.andMap
-         (fun hd -> 
-           state.root 
-           |> Panel.offset hd.id 
-           |> List.map (Util.tuple2 hd)
-         )
-    |> List.map 
-         (fun (hd, offset) ->
-           { state with 
-             root = 
-               addChildWithId 
-                 hd.id 
-                 (createNewPanel offset dragger) 
-                 state.root ;
-             dirtyPanels = true 
-           }
-         )
-    |> Util.headWithDefault state 
-  in
   let performDragOp dragger = 
     match (Util.log "PerformDragOp" dragger.action) with
+    | DragNoOp -> state
     | Click -> 
-       state.root
-       |> Panel.fromCoord dragger.start
+       state.measure.data
+       |> Measure.fromCoord dragger.start
+       |> List.map (fun measure -> measure.key)
+       |> List.map (fun id -> Panel.fromId id state.root)
+       |> List.concat
        |> List.map 
             (fun panel -> 
               if state.selected.id = panel.id then
@@ -197,7 +144,6 @@ let update action state =
             )
        |> Util.headWithDefault state.root
        |> (Util.flip selectPanel) state
-    | Drag -> createChild dragger
   in
   match Util.expose "action" (action,state.dragger) with
   | (NoOp,_) -> state
@@ -229,7 +175,7 @@ let update action state =
      if manhDistance > 4. then
        { state with 
          dragger = 
-           Some { dragger with dend = Point.ctor pt.x pt.y; action = Drag } 
+           Some { dragger with dend = Point.ctor pt.x pt.y; action = DragNoOp } 
        }
      else 
        { state with 

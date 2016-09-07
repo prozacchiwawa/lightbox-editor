@@ -24,21 +24,34 @@ let innerLayoutView
   let styles = self.parentStyles panel in
   renderPanel styles children parent panel
                 
-type FreeLayoutMgr() =
+type FlexDirection =
+  | FlexColumn
+  | FlexRow
+
+let stringOfFlexDirection fd =
+  match fd with
+  | FlexColumn -> "column"
+  | FlexRow -> "row"
+
+let flexDirectionOfString fds =
+  match fds with
+  | "row" -> FlexRow
+  | _ -> FlexColumn
+
+type FlexLayoutMgr(flexDirection : FlexDirection) =
   interface LayoutMgr<Panel, RenderMsg> with
     member self.view styles getLayoutMgr renderPanel parent panel =
       innerLayoutView self styles getLayoutMgr renderPanel parent panel
-    member self.childStyles idx panel = []
+    member self.childStyles idx panel =
+      [ ("display", "flex") ]
     member self.parentStyles panel =
-      let draggerUL = upperLeft panel in
-      let draggerBR = lowerRight panel in
-      [
-        ("position", Panel.positionString panel.position);
-        ("left", CSS.pixelPos draggerUL.x);
-        ("top", CSS.pixelPos draggerUL.y);
-        ("width", CSS.pixelPos (draggerBR.x - draggerUL.x));
-        ("height", CSS.pixelPos (draggerBR.y - draggerUL.y))
+      [ ("display", "flex") ;
+        ("flex-direction", stringOfFlexDirection flexDirection)
       ]
     member self.update msg = self :> LayoutMgr<Panel, RenderMsg>
     member self.serialize panel =
-      SerializeData.map [ ("type", SerializeData.string "FreeLayoutMgr") ]
+      SerializeData.map 
+        [ ("type", SerializeData.string "FlexLayoutMgr") ;
+          ("flex-direction", 
+           SerializeData.string (stringOfFlexDirection flexDirection))
+        ]

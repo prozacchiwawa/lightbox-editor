@@ -15,5 +15,6 @@ let render styles' children parent panel =
     MR.key = panel.id ;
     MR.attributes = [{name = "style" ; value = String.concat ";" (List.map (fun (n,v) -> String.concat ":" [n;v]) styles)}] ;
     MR.xmlns = None ;
+    MR.text = panel.text ;
     MR.children = children
   }

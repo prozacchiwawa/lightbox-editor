@@ -62,5 +62,33 @@ type RenderMsg =
     attributes : RenderAttribute list ;
     xmlns : string option ;
     key : string ;
+    text : string ;
     children : RenderMsg list ;
   }
+
+let upperLeft measure =
+  Point.ctor measure.bounds.x measure.bounds.y
+
+let lowerRight measure =
+  Point.ctor 
+    (measure.bounds.x + measure.bounds.width) 
+    (measure.bounds.y + measure.bounds.height)
+
+let pointInside coords measure =
+  let ul = upperLeft measure in
+  let lr = lowerRight measure in
+  Point.inside ul lr coords
+
+let rec fromCoord coords measure =
+  let ul = upperLeft measure in
+  let matchingChildPanels =
+    List.concat (List.map (fromCoord (Point.subtract coords ul)) (Array.toList measure.children))
+  in
+  let matchingThisPanel =
+    if pointInside coords measure then
+      [ measure ]
+    else 
+      []
+  in
+  List.concat [matchingChildPanels; matchingThisPanel]
+
