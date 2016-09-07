@@ -122,9 +122,9 @@ let rec update msg state =
        { state with dragger = report.dragger }
   | (DragStart (pt,id), _) ->
      state |> setDragging id true
-  | (DragMove (st,pt,id,hov), _) ->
+  | (DragMove (st,pt,hov,id), _) ->
      state |> setDragPosition id st pt
-  | (DragEnd (st,pt,id,hov), _) ->
+  | (DragEnd (st,pt,hov,id), _) ->
      state |> commitDrag id st pt 
   | _ -> state
 
