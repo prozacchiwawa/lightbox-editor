@@ -1,3 +1,3 @@
 window.objinterface = require('./objinterface');
-var script = require('./jsontest');
+var script = require('./fs/jsontest');
 script.default.main();
