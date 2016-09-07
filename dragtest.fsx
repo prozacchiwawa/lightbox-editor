@@ -38,8 +38,27 @@ type State =
   }
 
 let init arg =
+  let findByPoint pt state =
+    let found = 
+      List.filter 
+        (fun d -> 
+          Point.inside d.at (Point.add d.at { x = 100.0 ; y = 100.0 }) pt)
+        state.objects
+    in
+    match Util.expose "found" found with
+    | hd :: _ -> Some hd.id
+    | _ -> None
+  in
   {
-    dragger = emptyDragController NoOp ;
+    dragger = 
+      { emptyDragController NoOp with
+        getSubject = findByPoint ;
+        getTarget = findByPoint ;
+        isSameObject = fun state x y -> x = y ;
+        authorPickupMsg = fun pt state id -> DragStart (pt,id) ;
+        authorMoveMsg = fun st pt state tgt id -> DragMove (st,pt,Util.maybeWithDefault -1 tgt,id) ;
+        authorDropMsg = fun st pt state tgt id -> DragEnd (st,pt,Util.maybeWithDefault -1 tgt,id)
+      } ;
     objects = 
       [
         { id = 1 ; at = { x = 100.0; y = 100.0; }; drawn = None; color = "red" ; dragging = false ; hovering = false } ;
@@ -95,7 +114,7 @@ let rec update msg state =
     | MouseUp pt -> Some (DragController.MouseUp)
     | _ -> None
   in
-  match (msg, dragMsg) with
+  match Util.expose "msg" (msg, dragMsg) with
   | (_, Some dm) ->
      let report = DragController.update dm state state.dragger in
      takeMessages 
@@ -110,13 +129,14 @@ let rec update msg state =
   | _ -> state
 
 let viewDragObject (html : Msg Html.Html) draggable =
+  let pos = Util.maybeWithDefault draggable.at draggable.drawn in
   html.div
     [
       html.style 
         [
           ("position", "absolute") ;
-          ("left", String.concat "" [Util.toString draggable.at.x; "px"]) ;
-          ("top", String.concat "" [Util.toString draggable.at.y; "px"]) ;
+          ("left", String.concat "" [Util.toString pos.x; "px"]) ;
+          ("top", String.concat "" [Util.toString pos.y; "px"]) ;
           ("width", "100px") ;
           ("height", "100px") ;
           ("color", "white") ;
@@ -130,7 +150,16 @@ let view (html : Msg Html.Html) state =
   html.div 
     [] [] [
       html.div
-        [] 
+        [
+          html.style 
+            [ ("position", "absolute") ;
+              ("left", "0") ;
+              ("top", "0") ;
+              ("width", "100%") ;
+              ("height", "100%") ;
+              ("z-index", "2")
+            ]
+        ] 
         [
           Html.onMouseDown 
             html 
@@ -144,7 +173,16 @@ let view (html : Msg Html.Html) state =
         ]
         [] ;
       html.div
-        []
+        [
+          html.style
+            [ ("position", "absolute") ;
+              ("left", "0") ;
+              ("top", "0") ;
+              ("width", "100%") ;
+              ("height", "100%") ;
+              ("z-index", "1")
+            ]
+        ]
         []
         (List.map (viewDragObject html) state.objects)
     ]

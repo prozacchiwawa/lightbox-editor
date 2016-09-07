@@ -64,6 +64,11 @@ let headWithDefault d l =
   | [] -> d
   | hd :: _ -> hd
 
+let maybeWithDefault d m =
+  match m with
+  | None -> d
+  | Some v -> v
+
 let flip f b a = f a b
 
 let andMap f l = l |> List.map f |> List.concat

@@ -16,7 +16,7 @@ body {
     background-color: white;
 }
 
-.app-container {
+#app {
     position: absolute;
     display: flex;
     overflow: hidden;
