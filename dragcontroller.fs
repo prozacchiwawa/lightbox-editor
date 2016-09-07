@@ -97,14 +97,22 @@ let doStartDrag pt cont (report : ('object,'container','msg) UpdateResult) =
      report
 
 let doEnterLeave st pt oldTarget newTarget cont report dispatched =
-  match (oldTarget,newTarget) with
-  | (None, None) -> dispatched
-  | (Some o, None) -> (report.dragger.authorLeaveMsg st pt cont o) :: dispatched
-  | (None, Some o) -> (report.dragger.authorEnterMsg st pt cont o) :: dispatched
-  | (Some o, Some n) ->
-     (report.dragger.authorEnterMsg st pt cont n) ::
-       ((report.dragger.authorLeaveMsg st pt cont o) ::
-          dispatched)
+  match (oldTarget,newTarget,report.dragger.grabbedObject) with
+  | (None, None, _) -> dispatched
+  | (Some o, None, _) -> 
+     (report.dragger.authorLeaveMsg st pt cont o) :: dispatched
+  | (None, Some o, Some i) -> 
+     if not (report.dragger.isSameObject cont o i) then
+       (report.dragger.authorEnterMsg st pt cont o) :: dispatched
+     else
+       dispatched
+  | (Some o, Some n, _) ->
+     if not (report.dragger.isSameObject cont o n) then
+       (report.dragger.authorEnterMsg st pt cont n) ::
+         ((report.dragger.authorLeaveMsg st pt cont o) ::
+            dispatched)
+     else
+       dispatched
 
 let doMove st pt cont report =
   match report.dragger.grabbedObject with

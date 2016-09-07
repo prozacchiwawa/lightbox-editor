@@ -21,6 +21,8 @@ type Msg =
   | DragStart of (Point * int)
   | DragMove of (Point * Point * int * int)
   | DragEnd of (Point * Point * int * int)
+  | DragEnter of (Point * Point * int)
+  | DragLeave of (Point * Point * int)
 and Draggable =
   {
     id : int ;
@@ -57,7 +59,9 @@ let init arg =
         isSameObject = fun state x y -> x = y ;
         authorPickupMsg = fun pt state id -> DragStart (pt,id) ;
         authorMoveMsg = fun st pt state tgt id -> DragMove (st,pt,Util.maybeWithDefault -1 tgt,id) ;
-        authorDropMsg = fun st pt state tgt id -> DragEnd (st,pt,Util.maybeWithDefault -1 tgt,id)
+        authorDropMsg = fun st pt state tgt id -> DragEnd (st,pt,Util.maybeWithDefault -1 tgt,id) ;
+        authorEnterMsg = fun st pt state tgt -> DragEnter (st,pt,tgt) ;
+        authorLeaveMsg = fun st pt state tgt -> DragLeave (st,pt,tgt)
       } ;
     objects = 
       [
@@ -96,7 +100,7 @@ let commitDrag id st pt state =
   { state with
     objects =
       List.map
-        (fun o -> if o.id = id then { o with drawn = None ; at = match o.drawn with Some pt -> pt | None -> o.at } else o)
+        (fun o -> if o.id = id then { o with dragging = false ; drawn = None ; at = match o.drawn with Some pt -> pt | None -> o.at } else o)
         state.objects
   }
 
@@ -126,6 +130,10 @@ let rec update msg state =
      state |> setDragPosition id st pt
   | (DragEnd (st,pt,hov,id), _) ->
      state |> commitDrag id st pt 
+  | (DragEnter (st,pt,hov), _) ->
+     state |> setHovering hov true
+  | (DragLeave (st,pt,hov), _) ->
+     state |> setHovering hov false
   | _ -> state
 
 let viewDragObject (html : Msg Html.Html) draggable =
@@ -135,12 +143,14 @@ let viewDragObject (html : Msg Html.Html) draggable =
       html.style 
         [
           ("position", "absolute") ;
+          ("box-sizing", "border-box") ;
           ("left", String.concat "" [Util.toString pos.x; "px"]) ;
           ("top", String.concat "" [Util.toString pos.y; "px"]) ;
           ("width", "100px") ;
           ("height", "100px") ;
           ("color", "white") ;
-          ("border", "1px solid black") ;
+          ("border", if draggable.hovering then "2px solid white" else "1px solid black") ;
+          ("z-index", if draggable.dragging then "2" else "1") ;
           ("background-color", draggable.color)
         ]
     ] []
