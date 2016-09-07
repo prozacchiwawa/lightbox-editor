@@ -123,16 +123,18 @@ let rec replace p r =
         | MidCover (l,r) ->
            { child with lr = MidCover (l,r + diffWidth) }
         | HighGrav (w,r) ->
-           { child with lr = HighGrav (w,r + diffWidth) }
-        | _ -> child
+           { child with lr = HighGrav (w + diffWidth,r + diffWidth) }
+        | LowGrav (l,w) ->
+           { child with lr = LowGrav (l,w + diffWidth) }
       in
       let p2 =
         match p1.tb with
         | MidCover (t,b) ->
            { p1 with tb = MidCover (t,b + diffHeight) }
         | HighGrav (h,b) ->
-           { p1 with tb = HighGrav (h,b + diffHeight) }
-        | _ -> p1
+           { p1 with tb = HighGrav (h + diffHeight,b + diffHeight) }
+        | LowGrav (l,h) ->
+           { p1 with tb = LowGrav (l,h + diffHeight) }
       in
       updateChildPositions p2 child
     in
