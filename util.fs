@@ -53,11 +53,11 @@ let parseFloat str =
   let flt = parseFloat_ str in
   if isNaN flt then None else Some flt
 
-let rec listNth d l n =
-  match expose "nth" (d,l,n) with
-  | (_,hd :: tl,0) -> hd
+let rec listNth d f l n =
+  match (d,l,n) with
+  | (_,hd :: tl,0) -> f hd
   | (d,[],0) -> d
-  | (_,hd :: tl,n) -> listNth d tl (n - 1)
+  | (_,hd :: tl,n) -> listNth d f tl (n - 1)
 
 let headWithDefault d l =
   match l with 
@@ -74,6 +74,12 @@ let flip f b a = f a b
 let andMap f l = l |> List.map f |> List.concat
 
 let tuple2 a b = (a,b)
+
+[<Emit("Math.floor($0)")>]
+let floor : float -> float = fun a -> failwith "JS only"
+
+[<Emit("Math.floor($0)")>]
+let ifloor : float -> int = fun a -> failwith "JS only"
 
 [<Emit("Math.floor($0 + 0.5)")>]
 let round : float -> float = fun a -> failwith "JS only"

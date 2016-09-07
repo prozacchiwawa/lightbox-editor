@@ -51,7 +51,7 @@ type InputSelector(currentValue : string, valueList : Set<string>) =
             [
               Html.onSelectChange 
                 html 
-                (fun evt -> InputValueChanged (name, Util.listNth "" selectList evt.target.selectedIndex))
+                (fun evt -> InputValueChanged (name, Util.listNth "" id selectList evt.target.selectedIndex))
             ]
             (selectList |> 
                List.map 

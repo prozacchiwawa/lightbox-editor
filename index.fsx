@@ -28,6 +28,7 @@ open Fable.Import.Browser
 #load "serialize.fs"
 #load "layoutmgrload.fs"
 #load "panelserialize.fs"
+#load "toolbox.fs"
 
 open Q
 
@@ -62,6 +63,7 @@ type State =
     measure : MeasureMsg ;
     inactivityTimerId : int ;
     localStorage : Storage.Storage ;
+    toolbox : Toolbox.State
   }
     
 type Msg = 
@@ -78,6 +80,7 @@ type Msg =
   | LoadAutosave
   | AutosaveLoaded of SerializeData.Subkey
   | Rerender
+  | ToolboxMsg of Toolbox.Msg
 
 let init arg =
   let root = 
@@ -102,7 +105,8 @@ let init arg =
     ui = Controls.init grid root ;
     measure = Measure.emptyMeasure ;
     inactivityTimerId = -1 ;
-    localStorage = new LocalStorage.LocalStorage() :> Storage.Storage
+    localStorage = new LocalStorage.LocalStorage() :> Storage.Storage ;
+    toolbox = Toolbox.create () ;
   }
 
 let save state =
@@ -275,6 +279,9 @@ let view (html : Msg Html.Html) state =
     []
     (List.concat 
        [
+         [
+           Toolbox.view (Html.map (fun m -> ToolboxMsg m) html) state.toolbox
+         ] ;
          [ 
            html.div
              [html.className "root-container"] []
