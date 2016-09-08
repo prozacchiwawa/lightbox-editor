@@ -25,6 +25,7 @@ type MouseMsg =
   | MouseDown of Point
   | MouseMove of Point
   | MouseUp
+  | MouseClick of Point
 
 (* The object that remembers drags and produces messages. *)
 type ('object,'container,'msg) State =
@@ -45,6 +46,8 @@ type ('object,'container,'msg) State =
     authorEnterMsg : Point -> Point -> 'container -> 'object -> 'msg ;
     (* Create a leave message when target is left. *)
     authorLeaveMsg : Point -> Point -> 'container -> 'object -> 'msg ;
+    (* Create a click message if the mouse didn't move far. *)
+    authorClickMsg : Point -> 'container -> 'object -> 'msg ;
     (* Start of the drag *)
     dragStart : Point option ;
     (* Current point of the drag *)
@@ -68,6 +71,7 @@ let emptyDragController msg =
     authorDropMsg = fun st dr cont tgt obj -> msg ;
     authorEnterMsg = fun st dr cont obj -> msg ;
     authorLeaveMsg = fun st dr cont obj -> msg ;
+    authorClickMsg = fun st cont obj -> msg ;
     dragStart = None ;
     dragEnd = None ;
     grabbedObject = None ;
@@ -136,8 +140,11 @@ let doMove st pt cont report =
 
 let doEndDrag st pt cont sub report =
   let dispatch =
-    (report.dragger.authorDropMsg st pt cont report.dragger.targetObject sub) :: 
-      report.dispatched
+    if Point.inDistBox 4.0 pt st then
+      (report.dragger.authorClickMsg st cont sub) :: report.dispatched
+    else
+      ((report.dragger.authorDropMsg st pt cont report.dragger.targetObject sub) :: 
+         report.dispatched)
   in
   { report with
     dragger =

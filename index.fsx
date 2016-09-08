@@ -29,6 +29,7 @@ open Fable.Import.Browser
 #load "layoutmgrload.fs"
 #load "panelserialize.fs"
 #load "toolbox.fs"
+#load "dragcontroller.fs"
 
 open Q
 
@@ -40,32 +41,10 @@ type MeasureMsg = Measure.MeasureMsg
 
 type Color = { r : int ; b : int ; g : int ; a : int }
                
-type DragMode =
-  | Select
-               
-type DragAction =
-  | DragNoOp
-  | Click
+type DragTarget =
+  | ToolId of Toolbox.ToolId
+  | Panel of string
 
-type Dragger = { start : Point; dend : Point; action : DragAction } 
-                 
-type State = 
-  { 
-    palette : Map<string, Color> ;
-    root : Panel ;
-    dirtyPanels : bool ;
-    selected : Panel ;
-    backgroundUrl : string ;
-    dragmode : DragMode ;
-    dragger : Dragger option ;
-    grid : Grid ;
-    ui : UI ;
-    measure : MeasureMsg ;
-    inactivityTimerId : int ;
-    localStorage : Storage.Storage ;
-    toolbox : Toolbox.State
-  }
-    
 type Msg = 
   | NoOp 
   | AddChild of string
@@ -81,6 +60,23 @@ type Msg =
   | AutosaveLoaded of SerializeData.Subkey
   | Rerender
   | ToolboxMsg of Toolbox.Msg
+
+type State = 
+  { 
+    palette : Map<string, Color> ;
+    root : Panel ;
+    dirtyPanels : bool ;
+    selected : Panel ;
+    backgroundUrl : string ;
+    dragger : (DragTarget, State, Msg) DragController.State ;
+    grid : Grid ;
+    ui : UI ;
+    measure : MeasureMsg ;
+    inactivityTimerId : int ;
+    localStorage : Storage.Storage ;
+    toolbox : Toolbox.State ;
+    dragViz : (Point * Point) option ;
+  }
 
 let init arg =
   let root = 
@@ -99,14 +95,14 @@ let init arg =
     backgroundUrl = "" ;
     root = root ;
     dirtyPanels = false ; 
-    dragger = None ;
-    dragmode = Select ;
+    dragger = DragController.emptyDragController NoOp ;
     grid = grid ;
     ui = Controls.init grid root ;
     measure = Measure.emptyMeasure ;
     inactivityTimerId = -1 ;
     localStorage = new LocalStorage.LocalStorage() :> Storage.Storage ;
     toolbox = Toolbox.create () ;
+    dragViz = None ;
   }
 
 let save state =
@@ -130,7 +126,7 @@ let update action state =
           (Util.expose "Controls.select parent" parent) state.ui 
     }
   in
-  let performDragOp dragger = 
+(*  let performDragOp dragger = 
     match (Util.log "PerformDragOp" dragger.action) with
     | DragNoOp -> state
     | Click -> 
@@ -148,52 +144,28 @@ let update action state =
             )
        |> Util.headWithDefault state.root
        |> (Util.flip selectPanel) state
-  in
-  match Util.expose "action" (action,state.dragger) with
-  | (NoOp,_) -> state
-  | (MouseDown (x,y),None) ->
+  in *)
+  match Util.expose "action" action with
+  | NoOp -> state
+  | MouseDown (x,y) ->
      let pt = Grid.snap (Point.ctor x y) state.grid in
      if pt.x >= 0. && pt.x < 1000. && pt.y >= 0. && pt.y < 1000. then
-       { state with 
-         dragger = Some { start = pt; dend = pt; action = Click } 
-       }
+       state
      else 
        state
-  | (MouseUp (x,y),Some dragger) ->
-     { performDragOp dragger with dragger = None }
-  | (MouseMove (x,y),Some dragger) ->
+  | MouseUp (x,y) ->
+     state
+  | MouseMove (x,y) ->
      let pt = Grid.snap (Point.ctor x y) state.grid in
-     let draggerUL = 
-       Point.ctor
-         (Util.min 0. [dragger.start.x;dragger.dend.x])
-         (Util.min 0. [dragger.start.y;dragger.dend.y])
-     in
-     let draggerBR = 
-       Point.ctor
-         (Util.max 0. [dragger.start.x;dragger.dend.x])
-         (Util.max 0. [dragger.start.y;dragger.dend.y])
-     in
-     let manhDistance = 
-       (draggerBR.x - draggerUL.x) + (draggerBR.y - draggerUL.y) 
-     in
-     if manhDistance > 4. then
-       { state with 
-         dragger = 
-           Some { dragger with dend = Point.ctor pt.x pt.y; action = DragNoOp } 
-       }
-     else 
-       { state with 
-         dragger = 
-           Some { dragger with dend = Point.ctor pt.x pt.y } 
-       }
-  | (ControlMsg (Controls.ChangeBackground bg),_) ->
+     state
+  | ControlMsg (Controls.ChangeBackground bg) ->
      { state with backgroundUrl = Util.log "Background" bg }
-  | (ControlMsg (Controls.SelectPanel pid),_) ->
+  | ControlMsg (Controls.SelectPanel pid) ->
      state.root
      |> Panel.fromId pid
      |> Util.headWithDefault state.root
      |> (Util.flip selectPanel) state
-  | (ControlMsg (Controls.DeletePanel pid),_) ->
+  | ControlMsg (Controls.DeletePanel pid) ->
      let reselect = 
        state.root
        |> Panel.fromId pid
@@ -201,12 +173,8 @@ let update action state =
        |> (Util.flip selectPanel) state
      in
      { reselect with root = Panel.remove pid state.root ; dirtyPanels = true }
-  | (ControlMsg msg,_) -> 
-     let s0 = 
-       { state with 
-         dragger = None; ui = Controls.update msg state.ui 
-       } 
-     in
+  | ControlMsg msg ->
+     let s0 = { state with ui = Controls.update msg state.ui } in
      let s1 = { s0 with grid = s0.ui.grid } in
      if s1.ui.dirtyPanel then
        let (panel,ui) = Controls.takeUpdate s1.ui in
@@ -224,19 +192,19 @@ let cssPixelPos v =
 
 let view (html : Msg Html.Html) state =
   let visualizeDrag =
-    match (state.dragger,state.dragmode) with
-    | (None,_) -> 
+    match state.dragViz with
+    | None -> 
        [ html.div [{name = "style"; value = "display: none"}] [] [] ]
-    | (Some dragger,Select) ->
+    | Some (st,ed) ->
        let draggerUL = 
          Point.ctor
-           (Util.min 0. [dragger.start.x;dragger.dend.x])
-           (Util.min 0. [dragger.start.y;dragger.dend.y])
+           (Util.min 0. [st.x;ed.x])
+           (Util.min 0. [st.y;ed.y])
        in
        let draggerBR = 
          Point.ctor
-           (Util.max 0. [dragger.start.x;dragger.dend.x])
-           (Util.max 0. [dragger.start.y;dragger.dend.y])
+           (Util.max 0. [st.x;ed.x])
+           (Util.max 0. [st.y;ed.y])
        in
        [ html.div
            [ html.className "dragger" ;

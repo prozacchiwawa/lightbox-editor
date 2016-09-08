@@ -70,7 +70,7 @@ body {
     font-size: 3vmin;
     padding: 1vmin;
     background-color: white;
-    z-index: 3;
+    z-index: 4;
 }
 
 .control-toggle > i {
@@ -94,7 +94,7 @@ body {
     width: 300px;
     transition: width 0.3s;
     transition: background-color: 0.3s;
-    z-index: 2;
+    z-index: 3;
 }
 
 .control-closed {

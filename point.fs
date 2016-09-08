@@ -14,3 +14,8 @@ let add a b =
   { x = a.x + b.x; y = a.y + b.y }
 
 let ctor x y = { x = x ; y = y }
+
+let inDistBox n a b =
+  (abs (b.x - a.x)) < n && (abs (b.y - a.y)) < n
+
+  
