@@ -19,7 +19,7 @@ function mapNode(vdom, root, node) {
         // Prepend text
         var text = node.text;
         if (text) {
-            cout = {head:text, tail:cout};
+            cout = {head:vdom.vtext(text), tail:cout};
         }
         return vdom.vnode(tag)(attributes)({head:null, tail:null})(cout);
     }

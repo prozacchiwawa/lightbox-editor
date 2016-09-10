@@ -205,14 +205,15 @@ let rec update action state =
            }
      }
   | DragEnd (st,pt,Some (Panel id),ToolId sub) -> 
+     let viz = state.dragViz in
      let stateWithoutViz = { state with dragViz = None } in
-     stateWithoutViz.dragViz
+     viz
      |> Util.maybeMap 
           (fun dv ->
             stateWithoutViz.root
-            |> Panel.fromId id 
-            |> List.map (fun p -> Toolbox.applyTool stateWithoutViz.toolbox sub p)
-            |> List.map (fun p -> { stateWithoutViz with root = Panel.replace state.root p })
+            |> Panel.fromId id
+            |> List.map (fun p -> Util.expose "applyTool" (Toolbox.applyTool stateWithoutViz.toolbox sub p))
+            |> List.map (fun p -> { stateWithoutViz with dirtyPanels = true ; root = Panel.replace state.root p })
             |> Util.headWithDefault stateWithoutViz
           )
      |> Util.maybeWithDefault stateWithoutViz
