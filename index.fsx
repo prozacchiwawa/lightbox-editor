@@ -212,7 +212,7 @@ let rec update action state =
           (fun dv ->
             stateWithoutViz.root
             |> Panel.fromId id
-            |> List.map (fun p -> Util.expose "applyTool" (Toolbox.applyTool stateWithoutViz.toolbox sub p))
+            |> List.map (fun p -> Toolbox.applyTool stateWithoutViz.toolbox sub p)
             |> List.map (fun p -> { stateWithoutViz with dirtyPanels = true ; root = Panel.replace state.root p })
             |> Util.headWithDefault stateWithoutViz
           )

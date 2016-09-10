@@ -58,7 +58,10 @@ let itemFromId tid toolbox =
 
 let itemFromCoords (at : Point) toolbox =
   let n = Util.ifloor ((at.y - 5.0) / 105.0) in
-  Util.listNth None (fun a -> Some a) toolbox.tools n
+  if at.x < 110.0 then
+    Util.listNth None (fun a -> Some a) toolbox.tools n
+  else
+    None
 
 let viewDragging (html : Msg Html.Html) tid toolbox =
   toolbox

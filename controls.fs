@@ -246,7 +246,7 @@ let panelView (html : Msg Html) state =
                [] [
                  Html.onMouseClick 
                    html 
-                   (fun evt -> ToggleSection name)
+                   (fun evt -> VDom.stopPropagation evt ; ToggleSection name)
                ]
                [
                  (if ui.hidden then
