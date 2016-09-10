@@ -4,6 +4,7 @@ open Fable.Core
 open Fable.Import.Browser
 
 #load "util.fs"
+#load "dom.fs"
 #load "point.fs"
 #load "grid.fs"
 #load "vdom.fs"
@@ -60,6 +61,18 @@ type Msg =
   | AutosaveLoaded of SerializeData.Subkey
   | Rerender
   | ToolboxMsg of Toolbox.Msg
+  | DragStart of (Point * DragTarget)
+  | DragMove of (Point * Point * DragTarget option * DragTarget)
+  | DragEnd of (Point * Point * DragTarget option * DragTarget)
+  | DraggerClick of (Point * DragTarget)
+
+type DragViz =
+  {
+    start : Point ;
+    endAt : Point ;
+    subject : DragTarget ;
+    target : DragTarget option
+  }
 
 type State = 
   { 
@@ -75,8 +88,23 @@ type State =
     inactivityTimerId : int ;
     localStorage : Storage.Storage ;
     toolbox : Toolbox.State ;
-    dragViz : (Point * Point) option ;
+    dragViz : DragViz option ;
   }
+
+let findDraggableSubject (pt : Point) state =
+  let rdim : DOM.TextRectangle = 
+    DOM.getBoundingClientRect "canvas-frame" in
+  let panelFromPt = 
+    state.measure.data 
+    |> Measure.fromCoord (Point.ctor (pt.x - rdim.left) (pt.y - rdim.top))
+    |> List.map (fun i -> Some (Panel i.key))
+    |> Util.headWithDefault None
+  in
+  let _ = Util.expose "rdim" rdim in
+  state.toolbox
+  |> Toolbox.itemFromCoords pt
+  |> Util.maybeMap (fun i -> Some (ToolId i.id))
+  |> Util.maybeWithDefault panelFromPt
 
 let init arg =
   let root = 
@@ -95,7 +123,16 @@ let init arg =
     backgroundUrl = "" ;
     root = root ;
     dirtyPanels = false ; 
-    dragger = DragController.emptyDragController NoOp ;
+    dragger = 
+      { DragController.emptyDragController NoOp with
+        getSubject = (fun pt state -> findDraggableSubject pt state) ;
+        getTarget = (fun pt state -> findDraggableSubject pt state) ;
+        isSameObject = (fun state a b -> a = b) ;
+        authorPickupMsg = fun st state sub -> DragStart (st,sub) ;
+        authorMoveMsg = fun st pt state tgt sub -> DragMove (st,pt,tgt,sub) ;
+        authorDropMsg = fun st pt state tgt sub -> DragEnd (st,pt,tgt,sub) ;
+        authorClickMsg = fun st state sub -> DraggerClick (st,sub)
+      }
     grid = grid ;
     ui = Controls.init grid root ;
     measure = Measure.emptyMeasure ;
@@ -111,7 +148,7 @@ let save state =
   ]
   |> SerializeData.map
 
-let update action state =
+let rec update action state =
   let selectPanel (panel : Panel) state =
     let parent = 
       state.root
@@ -126,38 +163,70 @@ let update action state =
           (Util.expose "Controls.select parent" parent) state.ui 
     }
   in
-(*  let performDragOp dragger = 
-    match (Util.log "PerformDragOp" dragger.action) with
-    | DragNoOp -> state
-    | Click -> 
-       state.measure.data
-       |> Measure.fromCoord dragger.start
-       |> List.map (fun measure -> measure.key)
-       |> List.map (fun id -> Panel.fromId id state.root)
-       |> List.concat
-       |> List.map 
-            (fun panel -> 
-              if state.selected.id = panel.id then
-                state.root 
-              else 
-                panel
-            )
-       |> Util.headWithDefault state.root
-       |> (Util.flip selectPanel) state
-  in *)
+  let handleMouseEvent evt =
+    let report = DragController.update evt state state.dragger in
+    let newState = { state with dragger = report.dragger } in
+    let result = 
+      List.fold 
+        (fun state msg -> update msg state)
+        newState
+        report.dispatched
+    in
+    result
+  in
   match Util.expose "action" action with
   | NoOp -> state
   | MouseDown (x,y) ->
-     let pt = Grid.snap (Point.ctor x y) state.grid in
-     if pt.x >= 0. && pt.x < 1000. && pt.y >= 0. && pt.y < 1000. then
-       state
-     else 
-       state
+     handleMouseEvent (DragController.MouseDown (Point.ctor x y))
   | MouseUp (x,y) ->
-     state
+     handleMouseEvent DragController.MouseUp
   | MouseMove (x,y) ->
-     let pt = Grid.snap (Point.ctor x y) state.grid in
-     state
+     handleMouseEvent (DragController.MouseMove (Point.ctor x y))
+  | DragStart (st,sub) ->
+     { state with
+       dragViz =
+         Some
+           {
+             start = st;
+             endAt = st;
+             subject = sub ;
+             target = None
+           }
+     }
+  | DragMove (st,pt,tgt,sub) ->
+     { state with 
+       dragViz = 
+         Some 
+           { 
+             start = st ;
+             endAt = pt ;
+             subject = sub ;
+             target = tgt
+           }
+     }
+  | DragEnd (st,pt,Some (Panel id),ToolId sub) -> 
+     let stateWithoutViz = { state with dragViz = None } in
+     stateWithoutViz.dragViz
+     |> Util.maybeMap 
+          (fun dv ->
+            stateWithoutViz.root
+            |> Panel.fromId id 
+            |> List.map (fun p -> Toolbox.applyTool stateWithoutViz.toolbox sub p)
+            |> List.map (fun p -> { stateWithoutViz with root = Panel.replace state.root p })
+            |> Util.headWithDefault stateWithoutViz
+          )
+     |> Util.maybeWithDefault stateWithoutViz
+  | DragEnd (st,pt,_,_) ->
+     { state with dragViz = None }
+  | DraggerClick (st,sub) ->
+     let stateWithoutViz = { state with dragViz = None } in
+     match sub with
+       | Panel id ->
+          stateWithoutViz.root
+          |> Panel.fromId id
+          |> List.map (fun panel -> selectPanel panel stateWithoutViz)
+          |> Util.headWithDefault stateWithoutViz
+       | _ -> stateWithoutViz
   | ControlMsg (Controls.ChangeBackground bg) ->
      { state with backgroundUrl = Util.log "Background" bg }
   | ControlMsg (Controls.SelectPanel pid) ->
@@ -195,16 +264,16 @@ let view (html : Msg Html.Html) state =
     match state.dragViz with
     | None -> 
        [ html.div [{name = "style"; value = "display: none"}] [] [] ]
-    | Some (st,ed) ->
+    | Some dv ->
        let draggerUL = 
          Point.ctor
-           (Util.min 0. [st.x;ed.x])
-           (Util.min 0. [st.y;ed.y])
+           (Util.min 0. [dv.start.x;dv.endAt.x])
+           (Util.min 0. [dv.start.y;dv.endAt.y])
        in
        let draggerBR = 
          Point.ctor
-           (Util.max 0. [st.x;ed.x])
-           (Util.max 0. [st.y;ed.y])
+           (Util.max 0. [dv.start.x;dv.endAt.x])
+           (Util.max 0. [dv.start.y;dv.endAt.y])
        in
        [ html.div
            [ html.className "dragger" ;
@@ -242,9 +311,56 @@ let view (html : Msg Html.Html) state =
   let wireframe = 
     Wireframe.view html state.selected.id state.measure
   in
+  let dragViz =
+    let dragChild = 
+      match state.dragViz with
+      | None -> [ html.div [] [] [] ]
+      | Some dv ->
+         match dv.subject with
+         | Panel p -> [ html.div [] [] [] ]
+         | ToolId t ->
+            [
+              html.div 
+                [
+                  html.className "dragger-display" ;
+                  html.style
+                    [
+                      ("position", "absolute") ;
+                      ("left", String.concat "" [Util.toString dv.endAt.x; "px"]) ;
+                      ("top", String.concat "" [Util.toString dv.endAt.y; "px"])
+                    ]
+                ] 
+                [] 
+                (Toolbox.viewDragging (Html.map (fun m -> ToolboxMsg m) html) (Util.expose "t" t) state.toolbox)
+            ]
+    in
+    [ html.div [html.className "dragger-container"] [] dragChild ]
+  in
   html.div
     [html.className "app-container"]
-    []
+    [
+      Html.onMouseDown 
+        html 
+        (fun evt -> 
+          begin
+            VDom.preventDefault evt ;
+            MouseDown (evt.pageX, evt.pageY)
+          end) ;
+      Html.onMouseUp 
+        html 
+        (fun evt -> 
+          begin
+            VDom.preventDefault evt ;
+            MouseUp (evt.pageX, evt.pageY)
+          end) ;
+      Html.onMouseMove 
+        html 
+        (fun evt -> 
+          begin
+            VDom.preventDefault evt ;
+            MouseMove (evt.pageX, evt.pageY)
+          end)
+    ]
     (List.concat 
        [
          [
@@ -274,38 +390,15 @@ let view (html : Msg Html.Html) state =
                    wireframe
                  ] ;
                html.div
-                 [html.className "dragger-container"]
-                 [
-                   Html.onMouseDown 
-                     html 
-                     (fun evt -> 
-                       begin
-                         VDom.preventDefault evt ;
-                         MouseDown (evt.pageX, evt.pageY)
-                       end) ;
-                   Html.onMouseUp 
-                     html 
-                     (fun evt -> 
-                       begin
-                         VDom.preventDefault evt ;
-                         MouseUp (evt.pageX, evt.pageY)
-                       end) ;
-                   Html.onMouseMove 
-                     html 
-                     (fun evt -> 
-                       begin
-                         VDom.preventDefault evt ;
-                         MouseMove (evt.pageX, evt.pageY)
-                       end)
-                 ]
+                 [html.className "dragger-container"] []
                  (List.concat
                     [
-                      visualizeDrag ;
                       GridRenderer.view html state.grid
                     ]
                  )
              ] ;
          ] ;
+         dragViz ;
          Controls.view controlHtml state.ui ;
        ]
     )
@@ -359,7 +452,7 @@ let updateWithTimer post msg state =
          |> Serialize.subkeyToJson 
          |> (fun j -> Serialize.stringify j)
          |> st.localStorage.set "autosave" ;
-         st 
+         st
          |> clearTimeout 
        end
     | LoadAutosave ->
@@ -410,5 +503,5 @@ let main (vdom : Msg VDom.VDom) arg =
         init arg
       end
     VDom.update = (fun msg state -> updateAndEmit post msg state) ;
-    VDom.view = (view (Html.html vdom)) ;
+    VDom.view = (fun state -> view (Html.html vdom) state) ;
   }

@@ -158,17 +158,19 @@ let doEndDrag st pt cont sub report =
   }
 
 let update msg cont state =
-  let dragState = (msg, state.dragStart, state.grabbedObject) in
-  let emptyReport = { dragger = state ; dispatched = [] }
+  let dragState = 
+    (msg, state.dragStart, state.dragEnd, state.grabbedObject) 
+  in
+  let emptyReport = { dragger = state ; dispatched = [] } in
   match dragState with
-  | (MouseDown pt, _, _) -> 
+  | (MouseDown pt, _, _, _) -> 
      emptyReport
      |> doStartDrag pt cont
      |> doMove pt pt cont 
-  | (MouseMove pt, Some st, Some obj) ->
+  | (MouseMove pt, Some st, _, Some obj) ->
      emptyReport
      |> doMove st pt cont
-  | (MouseUp, Some st, Some obj) ->
+  | (MouseUp, Some st, Some pt, Some obj) ->
      emptyReport
-     |> doEndDrag st st cont obj
+     |> doEndDrag st pt cont obj
   | _ -> { dragger = state ; dispatched = [] }

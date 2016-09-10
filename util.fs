@@ -54,9 +54,9 @@ let parseFloat str =
   if isNaN flt then None else Some flt
 
 let rec listNth d f l n =
-  match (d,l,n) with
+  match expose "listNth" (d,l,n) with
   | (_,hd :: tl,0) -> f hd
-  | (d,[],0) -> d
+  | (d,[],_) -> d
   | (_,hd :: tl,n) -> listNth d f tl (n - 1)
 
 let headWithDefault d l =
@@ -73,6 +73,11 @@ let flip f b a = f a b
 
 let andMap f l = l |> List.map f |> List.concat
 
+let maybeMap f m =
+  match m with
+  | None -> None
+  | Some a -> Some (f a)
+
 let tuple2 a b = (a,b)
 
 [<Emit("Math.floor($0)")>]
@@ -87,3 +92,6 @@ let round : float -> float = fun a -> failwith "JS only"
 let snap (a : float) (b : float) = (round (a / b)) * b
 
 let foldInto f list init = List.fold f init list
+
+[<Emit("{ var a = $0; if (!a.selected) { debugger; } return a; }")>]
+let stop : 'a -> 'a = fun a -> failwith "JS only"

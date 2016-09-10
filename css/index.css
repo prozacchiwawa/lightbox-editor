@@ -24,6 +24,14 @@ body {
     bottom: 0;
 }
 
+.dragger-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+}
+
 .app-container {
     position: absolute;
     display: flex;

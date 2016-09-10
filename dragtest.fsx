@@ -118,7 +118,7 @@ let rec update msg state =
     | MouseUp pt -> Some (DragController.MouseUp)
     | _ -> None
   in
-  match Util.expose "msg" (msg, dragMsg) with
+  match (msg, dragMsg) with
   | (_, Some dm) ->
      let report = DragController.update dm state state.dragger in
      takeMessages 
