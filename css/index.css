@@ -68,6 +68,8 @@ body {
     position: absolute;
     left: 0;
     top: 0;
+    font-size: 2vmin;
+    color: rgba(0,0,0,0.5);
 }
 
 .control-toggle {
