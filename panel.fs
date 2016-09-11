@@ -49,7 +49,10 @@ let parent id parent_ panel =
   |> List.map (fun (parent,p) -> parent)
 
 let rec replace p r =
-  { r with children = List.map (replace p) r.children }
+  if p.id <> r.id then
+    { r with children = List.map (replace p) r.children }
+  else
+    p
 
 let rec remove pid root =
   { root with 

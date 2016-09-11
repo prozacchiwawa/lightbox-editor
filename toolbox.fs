@@ -16,7 +16,7 @@ type Tool =
   {
     id : ToolId ;
     render : Msg Html.Html -> Tool -> VDom.VNode ;
-    apply : Tool -> Panel -> Panel ;
+    apply : Tool -> Panel -> Panel -> Panel ;
   }
 
 type State =
@@ -37,7 +37,7 @@ let create _ =
         { id = TextChildTool ; 
           render = fontAwesomeRender "fa-newspaper-o" ;
           apply = 
-            fun tool panel ->
+            fun tool panel root ->
             let newPanel =
               {
                 id = Util.genId() ;
@@ -83,8 +83,8 @@ let view (html : Msg Html.Html) tb =
 let update msg tb =
   tb
 
-let applyTool toolbox tid panel =
+let applyTool toolbox tid panel root =
   toolbox.tools
   |> List.filter (fun t -> t.id = tid)
-  |> List.map (fun t -> t.apply t panel)
+  |> List.map (fun t -> Panel.replace (t.apply t panel root) root)
   |> Util.headWithDefault panel

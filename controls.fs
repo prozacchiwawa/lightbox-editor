@@ -275,7 +275,12 @@ let panelView (html : Msg Html) state =
   in
   [ 
     html.div 
-      [] [] 
+      [] 
+      [
+        Html.onMouseClick 
+          html 
+          (fun evt -> VDom.stopPropagation evt ; NoOp)
+      ] 
       (
         List.concat
           [
