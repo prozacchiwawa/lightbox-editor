@@ -277,9 +277,14 @@ let panelView (html : Msg Html) state =
     html.div 
       [] 
       [
+        Html.onMouseDown 
+          html (fun evt -> VDom.stopPropagation evt ; NoOp) ;
+        Html.onMouseMove
+          html (fun evt -> VDom.stopPropagation evt ; NoOp) ;
+        Html.onMouseUp
+          html (fun evt -> VDom.stopPropagation evt ; NoOp) ;          
         Html.onMouseClick 
-          html 
-          (fun evt -> VDom.stopPropagation evt ; NoOp)
+          html (fun evt -> VDom.stopPropagation evt ; NoOp)
       ] 
       (
         List.concat
