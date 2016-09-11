@@ -54,7 +54,7 @@ let parseFloat str =
   if isNaN flt then None else Some flt
 
 let rec listNth d f l n =
-  match expose "listNth" (d,l,n) with
+  match (d,l,n) with
   | (_,hd :: tl,0) -> f hd
   | (d,[],_) -> d
   | (_,hd :: tl,n) -> listNth d f tl (n - 1)

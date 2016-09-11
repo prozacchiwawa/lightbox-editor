@@ -10,6 +10,7 @@ type Msg =
   | NoOp
 
 type ToolId =
+  | EmptyChildTool
   | TextChildTool
 
 type Tool =
@@ -34,6 +35,36 @@ let create _ =
   { 
     tools = 
       [
+        { id = EmptyChildTool ;
+          render = fontAwesomeRender "columns" ;
+          apply = 
+            fun tool panel root ->
+            let newPanel =
+              {
+                id = Util.genId() ;
+                text = "";
+                background = "" ;
+                children = [] ;
+                layout = LayoutMgrImpl.FlexLayoutMgr(LayoutMgrImpl.FlexRow)
+              }
+            in
+            { panel with children = List.concat [panel.children;[newPanel]] }
+        } ;
+        { id = EmptyChildTool ;
+          render = fontAwesomeRender "list" ;
+          apply = 
+            fun tool panel root ->
+            let newPanel =
+              {
+                id = Util.genId() ;
+                text = "";
+                background = "" ;
+                children = [] ;
+                layout = LayoutMgrImpl.FlexLayoutMgr(LayoutMgrImpl.FlexColumn)
+              }
+            in
+            { panel with children = List.concat [panel.children;[newPanel]] }
+        } ;
         { id = TextChildTool ; 
           render = fontAwesomeRender "fa-newspaper-o" ;
           apply = 
@@ -44,11 +75,11 @@ let create _ =
                 text = "Lorem ipsum dolor sit amet" ;
                 background = "" ;
                 children = [] ;
-                layout = LayoutMgrImpl.FlexLayoutMgr(LayoutMgrImpl.FlexRow)
+                layout = LayoutMgrImpl.FlexLayoutMgr(LayoutMgrImpl.FlexColumn)
               }
             in
             { panel with children = List.concat [panel.children;[newPanel]] }
-        }
+        } ;
       ]
   }
 

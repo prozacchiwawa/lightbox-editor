@@ -305,6 +305,12 @@ let view (html : Msg Html) state =
     else
       "control-closed"
   in
+  let toggleClass =
+    if state.full then
+      "control-toggle"
+    else
+      "control-toggle control-toggle-shadow"
+  in
   let controlView = 
     if state.focused.id = "root" then 
       fun h s -> rootView h s 
@@ -313,7 +319,7 @@ let view (html : Msg Html) state =
   in
   [
     html.div
-      [ html.className "control-toggle" ]
+      [ html.className toggleClass ]
       []
       [ 
         html.i
