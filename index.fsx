@@ -4,6 +4,7 @@ open Fable.Core
 open Fable.Import.Browser
 
 #load "util.fs"
+#load "domunits.fs"
 #load "dom.fs"
 #load "point.fs"
 #load "grid.fs"
@@ -33,6 +34,7 @@ open Fable.Import.Browser
 #load "dragcontroller.fs"
 
 open Q
+open DomUnits
 
 type Point = Point.Point
 type Panel = Panel.Panel
@@ -92,7 +94,7 @@ type State =
   }
 
 let findDraggableSubject (pt : Point) state =
-  let rdim : DOM.TextRectangle = 
+  let rdim : TextRectangle = 
     DOM.getBoundingClientRect "canvas-frame" in
   let panelFromPt = 
     state.measure.data 
@@ -107,13 +109,19 @@ let findDraggableSubject (pt : Point) state =
   |> Util.maybeWithDefault panelFromPt
 
 let init arg =
+  let layout = new LayoutMgrImpl.FlexLayoutMgr(LayoutMgrImpl.FlexColumn) in
   let root = 
     { 
       Panel.id = "root" ;
       Panel.text = "" ;
       Panel.background = "" ;
       Panel.children = [] ;
-      Panel.layout = new LayoutMgrImpl.FlexLayoutMgr(LayoutMgrImpl.FlexColumn) ;
+      Panel.dummyChildren = [ Panel.dummy layout ] ;
+      Panel.useWidth = Unspecified ;
+      Panel.width = 0.0 ;
+      Panel.useHeight = Unspecified ;
+      Panel.height = 0.0 ;
+      Panel.layout = layout
     }
   in
   let grid = Grid.create false (Point.ctor 0. 0.) (Point.ctor 16. 16.) in

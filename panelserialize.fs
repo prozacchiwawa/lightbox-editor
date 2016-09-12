@@ -1,5 +1,6 @@
 module PanelSerialize
 
+open DomUnits
 open LayoutMgr
 open Panel
 open SerializeData
@@ -17,14 +18,19 @@ let rec save panel =
     ]
 
 let rec load ser =
+  let layout = LayoutMgrImpl.FlexLayoutMgr(FlexColumn) :> LayoutMgr<Panel,RenderMsg> in
   let emptyPanel =
     {
       id = "" ;
       text = "" ;
       background = "" ;
       children = [] ;
-      layout = 
-        LayoutMgrImpl.FlexLayoutMgr(FlexColumn) :> LayoutMgr<Panel,RenderMsg>
+      dummyChildren = [ dummy layout ];
+      useWidth = Unspecified ;
+      width = 0.0 ;
+      useHeight = Unspecified ;
+      height = 0.0 ;
+      layout = layout
     }
   in
   match ser with

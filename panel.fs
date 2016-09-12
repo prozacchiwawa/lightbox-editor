@@ -1,6 +1,8 @@
 module Panel
 
 open Util
+open DomUnits
+open DOM
 open Point
 open CSS
 open VDom
@@ -14,9 +16,27 @@ type Panel =
     text : string ;
     background : string ;
     children : Panel list ;
+    useWidth : DimUnit ;
+    useHeight : DimUnit ;
+    height : float ;
+    width : float ;
+    dummyChildren : Panel list ;
     layout : LayoutMgr.LayoutMgr<Panel,Measure.RenderMsg>
   }
        
+let dummy layout =
+  { id = "" ;
+    text = "Dummy content" ;
+    background = "" ;
+    children = [] ;
+    dummyChildren = [] ;
+    useWidth = Px ;
+    width = 45.0 ;
+    useHeight = Px ;
+    height = 300.0 ;
+    layout = layout
+  }
+
 let rec fromId id panel =
   let matchingChildPanels =
     List.concat (List.map (fromId id) panel.children)

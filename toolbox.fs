@@ -3,6 +3,7 @@ module Toolbox
 (* A toolbox is an element that contains a gallery of draggable objects.
  * dragging an object from the toolbox *)
 
+open DomUnits
 open Point
 open Panel
 
@@ -10,13 +11,17 @@ type Msg =
   | NoOp
 
 type ToolId =
-  | EmptyChildTool
+  | EmptyChildListTool
+  | EmptyChildRowTool
   | TextChildTool
+
+type ToolRender =
+  FontAwesome of string
 
 type Tool =
   {
     id : ToolId ;
-    render : Msg Html.Html -> Tool -> VDom.VNode ;
+    render : ToolRender
     apply : Tool -> Panel -> Panel -> Panel ;
   }
 
@@ -27,58 +32,64 @@ type State =
 
 let fontAwesomeRender icon (html : Msg Html.Html) t =
   html.i 
-    [ html.className (String.concat " " ["fa"; icon]) ; 
+    [ html.className (String.concat " " ["fa"; (Util.expose "icon" icon)]) ; 
       html.attribute "aria-hidden" "true"] 
     [] []
 
 let create _ =
+  let dummyLayout = LayoutMgrImpl.FlexLayoutMgr(LayoutMgrImpl.FlexColumn) in
+  let newPanel =
+    {
+      id = "" ;
+      text = "" ;
+      background = "" ;
+      children = [] ;
+      dummyChildren = [ Panel.dummy dummyLayout ] ;
+      useWidth = Unspecified ;
+      width = 0.0 ;
+      useHeight = Unspecified ;
+      height = 0.0 ;
+      layout = LayoutMgrImpl.FlexLayoutMgr(LayoutMgrImpl.FlexRow)
+    }
+  in
   { 
     tools = 
       [
-        { id = EmptyChildTool ;
-          render = fontAwesomeRender "columns" ;
+        { id = EmptyChildListTool ;
+          render = FontAwesome "fa-columns" ;
           apply = 
             fun tool panel root ->
-            let newPanel =
-              {
+            let p =
+              { newPanel with
                 id = Util.genId() ;
-                text = "";
-                background = "" ;
-                children = [] ;
-                layout = LayoutMgrImpl.FlexLayoutMgr(LayoutMgrImpl.FlexRow)
+                layout = 
+                  LayoutMgrImpl.FlexLayoutMgr(LayoutMgrImpl.FlexColumn)
               }
             in
-            { panel with children = List.concat [panel.children;[newPanel]] }
+            { panel with children = List.concat [panel.children;[p]] }
         } ;
-        { id = EmptyChildTool ;
-          render = fontAwesomeRender "list" ;
+        { id = EmptyChildRowTool ;
+          render = FontAwesome "fa-list" ;
           apply = 
-            fun tool panel root ->
-            let newPanel =
-              {
+            fun tool panel root -> 
+            let p = 
+              { newPanel with
                 id = Util.genId() ;
-                text = "";
-                background = "" ;
-                children = [] ;
-                layout = LayoutMgrImpl.FlexLayoutMgr(LayoutMgrImpl.FlexColumn)
+                layout = 
+                  LayoutMgrImpl.FlexLayoutMgr(LayoutMgrImpl.FlexRow)
               }
             in
-            { panel with children = List.concat [panel.children;[newPanel]] }
+            { panel with children = List.concat [panel.children;[p]] }
         } ;
         { id = TextChildTool ; 
-          render = fontAwesomeRender "fa-newspaper-o" ;
+          render = FontAwesome "fa-newspaper-o" ;
           apply = 
             fun tool panel root ->
-            let newPanel =
-              {
-                id = Util.genId() ;
-                text = "Lorem ipsum dolor sit amet" ;
-                background = "" ;
-                children = [] ;
-                layout = LayoutMgrImpl.FlexLayoutMgr(LayoutMgrImpl.FlexColumn)
-              }
-            in
-            { panel with children = List.concat [panel.children;[newPanel]] }
+            { panel with 
+              id = Util.genId() ;
+              text = "Lorem ipsum dolor sit amet" ;
+              children = List.concat [panel.children;[newPanel]] 
+            }
         } ;
       ]
   }
@@ -94,17 +105,18 @@ let itemFromCoords (at : Point) toolbox =
   else
     None
 
+let viewTool (html : Msg Html.Html) t =
+  let rendered =
+    match t.render with
+    | FontAwesome icon ->
+       fontAwesomeRender icon html t
+  in
+  html.div [html.className "toolbox-tool"] [] [ rendered ]
+
 let viewDragging (html : Msg Html.Html) tid toolbox =
   toolbox
   |> itemFromId tid
-  |> List.map
-       (fun t -> 
-         html.div [html.className "toolbox-tool"] [] [t.render html t])
-
-let viewTool (html : Msg Html.Html) t =
-  html.div
-    [html.className "toolbox-tool"] []
-    [t.render html t]
+  |> List.map (viewTool html)
 
 let view (html : Msg Html.Html) tb =
   html.div

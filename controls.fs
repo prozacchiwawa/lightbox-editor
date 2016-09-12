@@ -87,7 +87,7 @@ let createEditors panel =
       (
         "Panel",
         { name = "Panel" ;
-          hidden = true ;
+          hidden = false ;
           fragment = 
             new PanelControls<Msg>
               (panel, 
@@ -292,8 +292,7 @@ let panelView (html : Msg Html) state =
             (state.sections 
              |> Map.toList 
              |> List.map (fun (n,ui) -> viewComponent html n ui)
-            ) ;
-            [ panelDisplayHierRow html state.parent [panelChildren html state.focused] ] ;
+            )
           ]
       )
   ]
@@ -339,7 +338,12 @@ let view (html : Msg Html) state =
         html.div 
           [html.className "control-width"]
           []
-          (controlView html state)
+          (List.concat 
+             [ 
+               controlView html state ;
+               [ panelDisplayHierRow html state.parent [panelChildren html state.focused] ]
+             ]
+          )
       ]
   ]
 

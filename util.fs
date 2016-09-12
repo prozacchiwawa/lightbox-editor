@@ -95,3 +95,8 @@ let foldInto f list init = List.fold f init list
 
 [<Emit("{ var a = $0; if (!a.selected) { debugger; } return a; }")>]
 let stop : 'a -> 'a = fun a -> failwith "JS only"
+
+let maybeSingleton v =
+  match v with
+  | None -> []
+  | Some a -> [a]
