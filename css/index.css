@@ -65,6 +65,10 @@ body {
     color: black;
 }
 
+.panel-tree-row-name {
+    display: inline-block;
+}
+
 .panel-tree-row-selected {
     padding-left: 1vmin;
     color: rgba(240,37,21,1.0);

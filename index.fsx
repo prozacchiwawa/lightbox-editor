@@ -20,8 +20,6 @@ open Fable.Import.Browser
 #load "measurerender.fs"
 #load "wireframe.fs"
 #load "input.fs"
-#load "controlinterface.fs"
-#load "panelcontrols.fs"
 #load "controls.fs"
 #load "q.fs"
 #load "storage.fs"
