@@ -240,7 +240,9 @@ let rec panelDisplayHierRow (html : Msg Html) state panel =
     (List.concat 
        [
          [ html.text (String.concat " " ["Panel";panel.id]) ];
-         List.map (panelDisplayHierRow html state) panel.children
+         panel.children
+         |> List.rev
+         |> List.map (panelDisplayHierRow html state) 
        ]
     )
 
