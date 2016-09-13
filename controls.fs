@@ -34,12 +34,18 @@ type UI =
   {
     full : bool ;
     backgroundUrl : string ;
-    parent : Panel ;
+    root : Panel ;
     focused : Panel ;
     rootEd : Input.EditorSet ;
     dirtyPanel : bool ;
     grid : Grid ;
     sections : Map<string, UISectionContainer>
+  }
+
+type ControlItem =
+  {
+    name : string ;
+    control : ControlInterface.ControlInterface<Panel,Msg>
   }
 
 let makeRootEditors backgroundUrl grid =
@@ -106,7 +112,7 @@ let createEditors panel =
 let init grid panel = 
   { full = false ; 
     backgroundUrl = "" ;
-    parent = panel ;
+    root = panel ;
     focused = panel ; 
     rootEd = makeRootEditors "" grid ;
     dirtyPanel = false ;
@@ -114,11 +120,11 @@ let init grid panel =
     sections = createEditors panel
   }
 
-let select panel parent state =
-  let _ = Util.log "Controls.select with" (panel.id, parent.id) in
+let select panel root state =
+  let _ = Util.log "Controls.select with" (panel.id, root.id) in
   { state with 
     focused = panel ; 
-    parent = parent ; 
+    root = root ; 
     sections = createEditors panel
   }
 
@@ -212,9 +218,15 @@ let rootView (html : Msg Html) state =
      ]
   )
 
-let panelDisplayHierRow (html : Msg Html) panel children =
+let rec panelDisplayHierRow (html : Msg Html) state panel =
+  let treeRowClass =
+    if state.focused.id = panel.id then
+      "panel-tree-row-selected"
+    else
+      "panel-tree-row"
+  in
   html.div
-    [html.className "panel-tree-row"]
+    [html.className treeRowClass]
     [Html.onMouseClick 
        html 
        (fun evt -> 
@@ -228,12 +240,9 @@ let panelDisplayHierRow (html : Msg Html) panel children =
     (List.concat 
        [
          [ html.text (String.concat " " ["Panel";panel.id]) ];
-         children
+         List.map (panelDisplayHierRow html state) panel.children
        ]
     )
-
-let rec panelChildren (html : Msg Html) panel =
-  panelDisplayHierRow html panel (List.map (panelChildren html) panel.children)
 
 let panelView (html : Msg Html) state =
   let viewComponent html name ui =
@@ -311,10 +320,7 @@ let view (html : Msg Html) state =
       "control-toggle control-toggle-shadow"
   in
   let controlView = 
-    if state.focused.id = "root" then 
-      fun h s -> rootView h s 
-    else 
-      fun h s -> panelView h s
+    fun h s -> List.concat [ rootView h s ; panelView h s ]
   in
   [
     html.div
@@ -341,11 +347,11 @@ let view (html : Msg Html) state =
           (List.concat 
              [ 
                controlView html state ;
-               [ panelDisplayHierRow html state.parent [panelChildren html state.focused] ]
+               [ panelDisplayHierRow html state state.root ]
              ]
           )
       ]
   ]
 
 let takeUpdate state =
-  Util.expose "panelUpdate" (state.focused, { state with dirtyPanel = false })
+  (state.focused, { state with dirtyPanel = false })

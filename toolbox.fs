@@ -32,7 +32,7 @@ type State =
 
 let fontAwesomeRender icon (html : Msg Html.Html) t =
   html.i 
-    [ html.className (String.concat " " ["fa"; (Util.expose "icon" icon)]) ; 
+    [ html.className (String.concat " " ["fa"; icon]) ; 
       html.attribute "aria-hidden" "true"] 
     [] []
 

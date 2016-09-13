@@ -158,17 +158,11 @@ let save state =
 
 let rec update action state =
   let selectPanel (panel : Panel) state =
-    let parent = 
-      state.root
-      |> (Panel.parent panel.id state.root)
-      |> Util.headWithDefault state.root
-    in
     { state with 
       selected = panel ; 
       ui = 
         Controls.select 
-          panel 
-          (Util.expose "Controls.select parent" parent) state.ui 
+          panel state.root state.ui 
     }
   in
   let handleMouseEvent evt =
