@@ -33,6 +33,8 @@ open Fable.Import.Browser
 
 open Q
 open DomUnits
+open Measure
+open LayoutMgr
 
 type Point = Point.Point
 type Panel = Panel.Panel
@@ -107,19 +109,18 @@ let findDraggableSubject (pt : Point) state =
   |> Util.maybeWithDefault panelFromPt
 
 let init arg =
-  let layout = new LayoutMgrImpl.FlexLayoutMgr(LayoutMgrImpl.FlexColumn) in
   let root = 
     { 
       Panel.id = "root" ;
       Panel.text = "" ;
       Panel.background = "" ;
       Panel.children = [] ;
-      Panel.dummyChildren = [ Panel.dummy layout ] ;
+      Panel.dummyChildren = [ Panel.dummy ] ;
       Panel.useWidth = Unspecified ;
       Panel.width = 0.0 ;
       Panel.useHeight = Unspecified ;
       Panel.height = 0.0 ;
-      Panel.layout = layout
+      Panel.layout = []
     }
   in
   let grid = Grid.create false (Point.ctor 0. 0.) (Point.ctor 16. 16.) in
@@ -421,14 +422,42 @@ let combineWithState subkey state =
   | SerializeData.Dict d -> combineWithState_ d state
   | _ -> state
 
+let rec renderPanelToMeasure 
+      (getLayoutMgrs : Panel -> LayoutMgr<Panel, RenderMsg> list)
+      (render : (string * string) list -> RenderMsg list -> Panel -> RenderMsg)
+      (ourStyles : (string * string) list)
+      (panel : Panel) =
+  let renderedChildren =
+    List.mapi 
+      (fun i p ->
+        let layoutStyles =
+          List.concat
+            (List.map (fun (l : LayoutMgr<Panel, RenderMsg>) -> l.childStyles i p) (getLayoutMgrs panel))
+        in
+        renderPanelToMeasure 
+          getLayoutMgrs
+          render
+          layoutStyles
+          p
+      )
+      panel.children
+  in
+  let localStyles = 
+    List.concat 
+      (List.map (fun (l : LayoutMgr<Panel, RenderMsg>) -> l.parentStyles panel) (getLayoutMgrs panel)) 
+  in
+  render
+    (List.concat [ourStyles; localStyles])
+    renderedChildren
+    panel
+
 let pushUpdate state =
   VDom.postIFrameMessage 
     "canvas-frame"
-    (state.root.layout.view
-       []
+    (renderPanelToMeasure
        (fun p -> p.layout)
        (fun sty children panel -> MeasureRender.render sty children panel)
-       state.root
+       []
        state.root
     ) ;
   { state with dirtyPanels = false }

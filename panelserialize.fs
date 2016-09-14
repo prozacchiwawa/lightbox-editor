@@ -14,23 +14,22 @@ let rec save panel =
       ("text", string panel.text) ;
       ("background", string panel.background) ;
       ("children", list (List.map save panel.children)) ;
-      ("layout", panel.layout.serialize panel)
+      ("layout", list (List.map (fun (l : LayoutMgr<Panel,RenderMsg>) -> l.serialize panel) panel.layout))
     ]
 
 let rec load ser =
-  let layout = LayoutMgrImpl.FlexLayoutMgr(FlexColumn) :> LayoutMgr<Panel,RenderMsg> in
   let emptyPanel =
     {
       id = "" ;
       text = "" ;
       background = "" ;
       children = [] ;
-      dummyChildren = [ dummy layout ];
+      dummyChildren = [ dummy ];
       useWidth = Unspecified ;
       width = 0.0 ;
       useHeight = Unspecified ;
       height = 0.0 ;
-      layout = layout
+      layout = []
     }
   in
   match ser with
@@ -46,8 +45,8 @@ let rec load ser =
             { panel with background = bkg }
          | ("children",List l) ->
             { panel with children = List.map load l }
-         | ("layout",lm) ->
-            { panel with layout = LayoutMgrLoad.load lm }
+         | ("layout",List l) ->
+            { panel with layout = List.map LayoutMgrLoad.load l }
          | _ -> panel)
        emptyPanel
        d

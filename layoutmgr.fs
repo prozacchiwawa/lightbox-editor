@@ -17,13 +17,6 @@ let cssFromStyles styles moreStyles =
   List.concat [moreStyles ; styles]
 
 type ('p,'r) LayoutMgr =
-  abstract member view : 
-    Styles -> 
-    ('p -> ('p,'r) LayoutMgr) ->
-    ('p,'r) RenderPanel -> 
-    'p ->
-    'p -> 
-    'r
   abstract member childStyles : int -> 'p -> Styles
   abstract member parentStyles : 'p -> Styles
   abstract member update : Msg -> ('p,'r) LayoutMgr

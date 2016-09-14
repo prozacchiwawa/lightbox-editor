@@ -7,7 +7,7 @@ open Measure
 
 type MR = Measure.RenderMsg
 
-let rec render styles' children parent panel =
+let rec render styles' children panel =
   let width = 
     cssDim panel.useWidth panel.width
     |> Util.maybeMap (fun v -> ("width", v))
@@ -29,6 +29,6 @@ let rec render styles' children parent panel =
     MR.text = panel.text ;
     MR.children =
       match (panel.text, children) with
-      | ("", []) -> List.map (render [ ("padding", "30px") ] [] panel) panel.dummyChildren
+      | ("", []) -> List.map (render [ ("padding", "30px") ] []) panel.dummyChildren
       | _ -> children
   }

@@ -18,11 +18,18 @@ type Msg =
   | TogglePanel of (string * bool)
   | SetGrid of Grid
   | DeletePanel of string
+  | EditorMsg of (string * string * Input.Msg)
 
 type UISectionContainer =
   {
     name : string ;
     hidden : bool ;
+  }
+
+type EditPane =
+  {
+    name : string ;
+    editors : Input.EditorSet
   }
 
 type UI =
@@ -33,6 +40,7 @@ type UI =
     focused : Panel ;
     dirtyPanel : bool ;
     openPanels : Set<string> ;
+    panelEditors : Map<string, EditPane> ;
     grid : Grid
   }
 
@@ -43,6 +51,7 @@ let init grid panel =
     focused = panel ; 
     dirtyPanel = false ;
     openPanels = Set<string> [] ;
+    panelEditors = Map<string, EditPane> [] ;
     grid = grid
   }
 
@@ -52,6 +61,12 @@ let select panel root state =
     focused = panel ; 
     root = root 
   }
+
+let dropEditor state pid =
+  Map.remove pid state.panelEditors
+
+let createEditors state panel =
+  state.panelEditors
 
 let update action state =
   match action with
@@ -63,7 +78,12 @@ let update action state =
          if openPanel then
            Set.add pid state.openPanels
          else
-           Set.remove pid state.openPanels
+           Set.remove pid state.openPanels ;
+       panelEditors = 
+         if openPanel then
+           createEditors state pid
+         else
+           dropEditor state pid
      }
   | _ -> state
 
@@ -75,6 +95,12 @@ let labeledInput html f name (inp : Input.EditorInstance) =
     html.div
       [html.className "control-row"] []
       [inp.view (Html.map f html) name]
+  ]
+
+let viewControls html state panel =
+  [ 
+    html.div
+      [html.className "SNAAAKE111"] [] []
   ]
 
 let rec panelDisplayHierRow (html : Msg Html) state panel =
@@ -126,31 +152,18 @@ let rec panelDisplayHierRow (html : Msg Html) state panel =
              [ html.text (String.concat " " ["Panel";panel.id]) ]
          ];
          (if panelOpen then
-           panel.children
-           |> List.rev
-           |> List.map (panelDisplayHierRow html state) 
+            (List.concat
+               [
+                 viewControls html state panel ;
+                 panel.children
+                 |> List.rev
+                 |> List.map (panelDisplayHierRow html state)
+               ]
+            )
          else
            [])
        ]
     )
-    
-
-let panelView (html : Msg Html) state =
-  [ 
-    html.div 
-      [] 
-      [
-        Html.onMouseDown 
-          html (fun evt -> VDom.stopPropagation evt ; NoOp) ;
-        Html.onMouseMove
-          html (fun evt -> VDom.stopPropagation evt ; NoOp) ;
-        Html.onMouseUp
-          html (fun evt -> VDom.stopPropagation evt ; NoOp) ;          
-        Html.onMouseClick 
-          html (fun evt -> VDom.stopPropagation evt ; NoOp)
-      ] 
-      []
-  ]
 
 let view (html : Msg Html) state =
   let controlClass =
@@ -164,9 +177,6 @@ let view (html : Msg Html) state =
       "control-toggle"
     else
       "control-toggle control-toggle-shadow"
-  in
-  let controlView = 
-    fun h s -> panelView h s
   in
   [
     html.div
@@ -192,7 +202,6 @@ let view (html : Msg Html) state =
           []
           (List.concat 
              [ 
-               controlView html state ;
                [ panelDisplayHierRow html state state.root ]
              ]
           )

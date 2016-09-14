@@ -21,10 +21,10 @@ type Panel =
     height : float ;
     width : float ;
     dummyChildren : Panel list ;
-    layout : LayoutMgr.LayoutMgr<Panel,Measure.RenderMsg>
+    layout : LayoutMgr.LayoutMgr<Panel,Measure.RenderMsg> list
   }
        
-let dummy layout =
+let dummy =
   { id = "" ;
     text = "Dummy content" ;
     background = "" ;
@@ -34,7 +34,7 @@ let dummy layout =
     width = 45.0 ;
     useHeight = Px ;
     height = 300.0 ;
-    layout = layout
+    layout = []
   }
 
 let rec fromId id panel =

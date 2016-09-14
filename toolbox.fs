@@ -37,19 +37,18 @@ let fontAwesomeRender icon (html : Msg Html.Html) t =
     [] []
 
 let create _ =
-  let dummyLayout = LayoutMgrImpl.FlexLayoutMgr(LayoutMgrImpl.FlexColumn) in
   let newPanel =
     {
       id = "" ;
       text = "" ;
       background = "" ;
       children = [] ;
-      dummyChildren = [ Panel.dummy dummyLayout ] ;
+      dummyChildren = [ Panel.dummy ] ;
       useWidth = Unspecified ;
       width = 0.0 ;
       useHeight = Unspecified ;
       height = 0.0 ;
-      layout = LayoutMgrImpl.FlexLayoutMgr(LayoutMgrImpl.FlexRow)
+      layout = []
     }
   in
   { 
@@ -62,8 +61,10 @@ let create _ =
             let p =
               { newPanel with
                 id = Util.genId() ;
-                layout = 
-                  LayoutMgrImpl.FlexLayoutMgr(LayoutMgrImpl.FlexColumn)
+                layout =
+                  [
+                    LayoutMgrImpl.FlexLayoutMgr(LayoutMgrImpl.FlexColumn)
+                  ]
               }
             in
             { panel with children = List.concat [panel.children;[p]] }
@@ -75,8 +76,10 @@ let create _ =
             let p = 
               { newPanel with
                 id = Util.genId() ;
-                layout = 
-                  LayoutMgrImpl.FlexLayoutMgr(LayoutMgrImpl.FlexRow)
+                layout =
+                  [
+                    LayoutMgrImpl.FlexLayoutMgr(LayoutMgrImpl.FlexRow)
+                  ]
               }
             in
             { panel with children = List.concat [panel.children;[p]] }
