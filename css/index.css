@@ -22,6 +22,7 @@ body {
     top: 0;
     width: 1000px;
     bottom: 0;
+    z-index: 2;
 }
 
 .dragger-container {
@@ -223,14 +224,4 @@ body {
     width: 100px;
     background-color: #575;
     box-shadow: 0px 3px 5px #000;
-}
-
-.SNAAAKE111 {
-    font-size: 4vmin;
-    color: #ff0;
-    background-color: #909;
-}
-
-.SNAAAKE111:after {
-    content: "Snake?  Snake?!  SNAAAKE!!1";
 }
