@@ -5,6 +5,8 @@ open Grid
 open Html
 open Panel
 open Input
+open Measure
+open LayoutMgr
 
 type Grid = Grid.Grid
 type Panel = Panel.Panel
@@ -18,17 +20,12 @@ type Msg =
   | TogglePanel of (string * bool)
   | SetGrid of Grid
   | DeletePanel of string
-  | EditorMsg of (string * string * Input.Msg)
-
-type UISectionContainer =
-  {
-    name : string ;
-    hidden : bool ;
-  }
+  | LayoutMgrMsg of (int * LayoutMgr.Msg)
 
 type EditPane =
   {
     name : string ;
+    hidden : bool ;
     editors : Input.EditorSet
   }
 
@@ -98,11 +95,19 @@ let labeledInput html f name (inp : Input.EditorInstance) =
   ]
 
 let viewControls html state panel =
-  [ 
-    html.div
-      [html.className "SNAAAKE111"] [] []
-  ]
-
+  List.concat 
+    (List.mapi 
+       (fun i (l : LayoutMgr<Panel, RenderMsg>) -> 
+         [ html.div
+             [html.className "ui-panel"] [] 
+             [
+               l.view (Html.map (fun m -> LayoutMgrMsg (i,m)) html) panel
+             ]
+         ]
+       )
+       panel.layout
+    )
+      
 let rec panelDisplayHierRow (html : Msg Html) state panel =
   let treeRowClass =
     if state.focused.id = panel.id then
@@ -160,8 +165,9 @@ let rec panelDisplayHierRow (html : Msg Html) state panel =
                  |> List.map (panelDisplayHierRow html state)
                ]
             )
-         else
-           [])
+          else
+            []
+         )
        ]
     )
 

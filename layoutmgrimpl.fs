@@ -31,6 +31,8 @@ type FlexLayoutMgr(flexDirection : FlexDirection) =
       [ ("display", "flex") ;
         ("flex-direction", stringOfFlexDirection flexDirection)
       ]
+    member self.view html panel = 
+      html.div [] [] []
     member self.update msg = self :> LayoutMgr<Panel, RenderMsg>
     member self.serialize panel =
       SerializeData.map 
