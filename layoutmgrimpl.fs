@@ -5,6 +5,7 @@ open CSS
 open Panel
 open LayoutMgr
 open Measure
+open Input
 
 type Panel = Panel.Panel
 type RenderMsg = Measure.RenderMsg
@@ -23,7 +24,22 @@ let flexDirectionOfString fds =
   | "row" -> FlexRow
   | _ -> FlexColumn
 
+let createSelector name value vlist =
+  new InputSelector(
+        value,
+        (Set<string> vlist)
+      )
+
 type FlexLayoutMgr(flexDirection : FlexDirection) =
+  let editors = 
+    Input.init ()
+    |> Input.create "flex-direction"
+         (createSelector 
+            "flex-direction" 
+            (stringOfFlexDirection flexDirection) 
+            ["row" ; "column"]
+         )
+  in
   interface LayoutMgr<Panel, RenderMsg> with
     member self.childStyles idx panel =
       [ ("display", "flex") ]
@@ -32,7 +48,10 @@ type FlexLayoutMgr(flexDirection : FlexDirection) =
         ("flex-direction", stringOfFlexDirection flexDirection)
       ]
     member self.view html panel = 
-      html.div [] [] []
+      html.div
+        []
+        []
+        (Input.map (fun n ed -> ed.view (Html.map (fun m -> InputMsg m) html) n) editors)
     member self.update msg = self :> LayoutMgr<Panel, RenderMsg>
     member self.serialize panel =
       SerializeData.map 
