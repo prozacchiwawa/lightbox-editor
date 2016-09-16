@@ -6,7 +6,7 @@ open Html
 open Panel
 open Input
 open Measure
-open LayoutMgr
+open Gadget
 
 type Grid = Grid.Grid
 type Panel = Panel.Panel
@@ -20,7 +20,7 @@ type Msg =
   | TogglePanel of (string * bool)
   | SetGrid of Grid
   | DeletePanel of string
-  | LayoutMgrMsg of (int * LayoutMgr.Msg)
+  | GadgetMsg of (string * string * Gadget.Msg)
 
 type EditPane =
   {
@@ -82,6 +82,30 @@ let update action state =
          else
            dropEditor state pid
      }
+  | GadgetMsg (n,l,m) ->
+     let updatedPanel p =
+       { p with
+         layout =
+           List.map
+             (fun (lm : Gadget<Panel,RenderMsg>) ->
+               if lm.name () = l then
+                 lm.update m
+               else
+                 lm
+             )
+             p.layout
+       }
+     in
+     Panel.fromId n state.root 
+       |> List.map updatedPanel
+       |> List.map
+            (fun p ->
+              { state with
+                dirtyPanel = true ;
+                root = Panel.replace p state.root
+              }
+            )
+       |> Util.headWithDefault state
   | _ -> state
 
 let labeledInput html f name (inp : Input.EditorInstance) =
@@ -97,11 +121,11 @@ let labeledInput html f name (inp : Input.EditorInstance) =
 let viewControls html state panel =
   List.concat 
     (List.mapi 
-       (fun i (l : LayoutMgr<Panel, RenderMsg>) -> 
+       (fun i (l : Gadget<Panel, RenderMsg>) -> 
          [ html.div
              [html.className "ui-panel"] [] 
              [
-               l.view (Html.map (fun m -> LayoutMgrMsg (i,m)) html) panel
+               l.view (Html.map (fun m -> GadgetMsg (panel.id,l.name (),m)) html) panel
              ]
          ]
        )
@@ -133,26 +157,14 @@ let rec panelDisplayHierRow (html : Msg Html) state panel =
              [
                Html.onMouseClick 
                  html 
-                 (fun evt -> 
-                   begin
-                     VDom.preventDefault evt ;
-                     VDom.stopPropagation evt ;
-                     TogglePanel (panel.id, not panelOpen)
-                   end
-                 )
+                 (fun evt -> TogglePanel (panel.id, not panelOpen))
              ] [] ;
            html.div
              [html.className "panel-tree-row-name"]
              [
                Html.onMouseClick 
                  html 
-                 (fun evt -> 
-                   begin
-                     VDom.preventDefault evt ;
-                     VDom.stopPropagation evt ;
-                     SelectPanel panel.id
-                   end
-                 )
+                 (fun evt -> SelectPanel panel.id)
              ]
              [ html.text (String.concat " " ["Panel";panel.id]) ]
          ];

@@ -41,13 +41,7 @@ let create _ =
     {
       id = "" ;
       text = "" ;
-      background = "" ;
       children = [] ;
-      dummyChildren = [ Panel.dummy ] ;
-      useWidth = Unspecified ;
-      width = 0.0 ;
-      useHeight = Unspecified ;
-      height = 0.0 ;
       layout = []
     }
   in
@@ -63,7 +57,7 @@ let create _ =
                 id = Util.genId() ;
                 layout =
                   [
-                    LayoutMgrImpl.FlexLayoutMgr(LayoutMgrImpl.FlexColumn)
+                    GadgetImpl.FlexGadget(GadgetImpl.FlexColumn, None)
                   ]
               }
             in
@@ -78,7 +72,7 @@ let create _ =
                 id = Util.genId() ;
                 layout =
                   [
-                    LayoutMgrImpl.FlexLayoutMgr(LayoutMgrImpl.FlexRow)
+                    GadgetImpl.FlexGadget(GadgetImpl.FlexRow, None)
                   ]
               }
             in

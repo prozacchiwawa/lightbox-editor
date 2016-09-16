@@ -15,9 +15,9 @@ open Fable.Import.Browser
 #load "gridrenderer.fs"
 #load "measure.fs"
 #load "input.fs"
-#load "layoutmgr.fs"
+#load "gadget.fs"
 #load "panel.fs"
-#load "layoutmgrimpl.fs"
+#load "gadgetimpl.fs"
 #load "measurerender.fs"
 #load "wireframe.fs"
 #load "controls.fs"
@@ -26,7 +26,7 @@ open Fable.Import.Browser
 #load "localstorage.fs"
 #load "timer.fs"
 #load "serialize.fs"
-#load "layoutmgrload.fs"
+#load "gadgetload.fs"
 #load "panelserialize.fs"
 #load "toolbox.fs"
 #load "dragcontroller.fs"
@@ -34,7 +34,7 @@ open Fable.Import.Browser
 open Q
 open DomUnits
 open Measure
-open LayoutMgr
+open Gadget
 
 type Point = Point.Point
 type Panel = Panel.Panel
@@ -83,6 +83,7 @@ type State =
     dirtyPanels : bool ;
     selected : Panel ;
     backgroundUrl : string ;
+    opacity : float ;
     dragger : (DragTarget, State, Msg) DragController.State ;
     grid : Grid ;
     ui : UI ;
@@ -113,13 +114,7 @@ let init arg =
     { 
       Panel.id = "root" ;
       Panel.text = "" ;
-      Panel.background = "" ;
       Panel.children = [] ;
-      Panel.dummyChildren = [ Panel.dummy ] ;
-      Panel.useWidth = Unspecified ;
-      Panel.width = 0.0 ;
-      Panel.useHeight = Unspecified ;
-      Panel.height = 0.0 ;
       Panel.layout = []
     }
   in
@@ -128,6 +123,7 @@ let init arg =
     palette = Map<string, Color> [] ;
     selected = root ;
     backgroundUrl = "" ;
+    opacity = 0.4 ;
     root = root ;
     dirtyPanels = false ; 
     dragger = 
@@ -151,6 +147,7 @@ let init arg =
 
 let save state =
   [ ("backgroundUrl", SerializeData.string state.backgroundUrl) ;
+    ("opacity", SerializeData.num state.opacity) ;
     ("root", PanelSerialize.save state.root)
   ]
   |> SerializeData.map
@@ -301,6 +298,7 @@ let view (html : Msg Html.Html) state =
       [ html.style
           [
             ("background-image", String.concat "" ["url('";state.backgroundUrl;"')"]) ;
+            ("opacity", Util.toString state.opacity) ;
             ("background-repeat", "no-repeat") ;
             ("background-position", "center top") ;
             ("background-size", "100% auto") ;
@@ -412,6 +410,8 @@ let combineWithState subkey state =
          match (key,v) with
          | ("backgroundUrl",SerializeData.String bgurl) -> 
             { state with backgroundUrl = bgurl }
+         | ("opacity",SerializeData.Float n) ->
+            { state with opacity = n }
          | ("root",root) ->
             { state with root = PanelSerialize.load root ; dirtyPanels = true }
          | _ -> state
@@ -423,7 +423,7 @@ let combineWithState subkey state =
   | _ -> state
 
 let rec renderPanelToMeasure 
-      (getLayoutMgrs : Panel -> LayoutMgr<Panel, RenderMsg> list)
+      (getGadgets : Panel -> Gadget<Panel, RenderMsg> list)
       (render : (string * string) list -> RenderMsg list -> Panel -> RenderMsg)
       (ourStyles : (string * string) list)
       (panel : Panel) =
@@ -432,10 +432,10 @@ let rec renderPanelToMeasure
       (fun i p ->
         let layoutStyles =
           List.concat
-            (List.map (fun (l : LayoutMgr<Panel, RenderMsg>) -> l.childStyles i p) (getLayoutMgrs panel))
+            (List.map (fun (l : Gadget<Panel, RenderMsg>) -> l.childStyles i p) (getGadgets panel))
         in
         renderPanelToMeasure 
-          getLayoutMgrs
+          getGadgets
           render
           layoutStyles
           p
@@ -444,7 +444,7 @@ let rec renderPanelToMeasure
   in
   let localStyles = 
     List.concat 
-      (List.map (fun (l : LayoutMgr<Panel, RenderMsg>) -> l.parentStyles panel) (getLayoutMgrs panel)) 
+      (List.map (fun (l : Gadget<Panel, RenderMsg>) -> l.parentStyles panel) (getGadgets panel)) 
   in
   render
     (List.concat [ourStyles; localStyles])

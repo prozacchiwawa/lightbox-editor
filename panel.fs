@@ -7,33 +7,21 @@ open Point
 open CSS
 open VDom
 open Html
-open LayoutMgr
+open Gadget
 open Measure
 
 type Panel =
   {
     id : string ;
     text : string ;
-    background : string ;
     children : Panel list ;
-    useWidth : DimUnit ;
-    useHeight : DimUnit ;
-    height : float ;
-    width : float ;
-    dummyChildren : Panel list ;
-    layout : LayoutMgr.LayoutMgr<Panel,Measure.RenderMsg> list
+    layout : Gadget.Gadget<Panel,Measure.RenderMsg> list
   }
        
 let dummy =
   { id = "" ;
     text = "Dummy content" ;
-    background = "" ;
     children = [] ;
-    dummyChildren = [] ;
-    useWidth = Px ;
-    width = 45.0 ;
-    useHeight = Px ;
-    height = 300.0 ;
     layout = []
   }
 
