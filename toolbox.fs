@@ -27,8 +27,8 @@ type Tool =
 type State =
   {
     tools : Tool list ;
-    included : Set<string> ;
-    original : Set<string>
+    included : Map<string, Gadget<Panel,RenderMsg> > ;
+    original : Map<string, Gadget<Panel,RenderMsg> >
   }
 
 let fontAwesomeRender icon (html : Msg Html.Html) t =
@@ -38,10 +38,9 @@ let fontAwesomeRender icon (html : Msg Html.Html) t =
     [] []
 
 let create (tools : Gadget<Panel,RenderMsg> list) =
-  let included =
-    tools
-    |> List.map (fun t -> t.name ())
-    |> Set<string>
+  let included = 
+    new Map<string, Gadget<Panel, RenderMsg> >
+      (List.map (fun (t : Gadget<Panel,RenderMsg>) -> (t.name (), t)) tools)
   in
   { 
     included = included ;
@@ -71,7 +70,7 @@ let viewTool (html : Msg Html.Html) toolbox t =
        fontAwesomeRender icon html t
   in
   let toolClass =
-    if Set.contains (t.gadget.name ()) toolbox.included then
+    if Map.containsKey (t.gadget.name ()) toolbox.included then
       "toolbox-tool toolbox-tool-selected"
     else
       "toolbox-tool"
@@ -94,9 +93,23 @@ let view (html : Msg Html.Html) tb =
 let update msg tb =
   match msg with
   | ToggleGadget g ->
-     if Set.contains g tb.included then
-       { tb with included = Set.remove g tb.included }
+     if Map.containsKey g tb.included then
+       { tb with included = Map.remove g tb.included }
      else
-       { tb with included = Set.add g tb.included }
+       { tb with 
+         included = 
+           List.concat 
+             [
+               tb.original
+               |> Map.tryFind g
+               |> Util.maybeSingleton ;
+               tb.tools
+               |> List.map (fun t -> t.gadget)
+               |> List.filter (fun gadget -> (gadget.name ()) = g)
+             ]
+           |> List.map 
+                (fun g -> Map.add (g.name ()) g tb.included)
+           |> Util.headWithDefault tb.included
+       }
   | _ -> tb
 

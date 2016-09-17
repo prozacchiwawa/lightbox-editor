@@ -66,7 +66,7 @@ type Msg =
   | DragMove of (Point * Point * DragTarget option * DragTarget)
   | DragEnd of (Point * Point * DragTarget option * DragTarget)
   | DraggerClick of (Point * DragTarget)
-  | DismissToolbox of (Set<string>)
+  | DismissToolbox of (Map<string, Gadget<Panel,RenderMsg> >)
 
 type DragViz =
   {
@@ -147,12 +147,15 @@ let save state =
 
 let rec update action state =
   let selectPanel (panel : Panel) state =
-    { state with 
-      selected = panel ; 
-      ui = 
-        Controls.select 
-          panel state.root state.ui 
-    }
+    match state.toolbox with
+    | Some _ -> state
+    | None ->
+       { state with 
+         selected = panel ; 
+         ui = 
+           Controls.select 
+             panel state.root state.ui 
+       }
   in
   let handleMouseEvent evt =
     let report = DragController.update evt state state.dragger in
@@ -216,14 +219,21 @@ let rec update action state =
   | ControlMsg (Controls.DeletePanel pid) ->
      let reselect = 
        state.root
-       |> Panel.fromId pid
+       |> Panel.parent pid state.root
        |> Util.headWithDefault state.root
        |> (Util.flip selectPanel) state
      in
      { reselect with root = Panel.remove pid state.root ; dirtyPanels = true }
   (* Open the gadgets pane *)
   | ControlMsg (Controls.GadgetPanel pid) -> 
-     { state with
+     let s0 = 
+       selectPanel 
+         (state.root
+          |> Panel.fromId pid
+          |> Util.headWithDefault state.selected)
+         state
+     in
+     { s0 with
        toolbox = Some (Toolbox.create state.selected.layout)
      }
   | ControlMsg msg ->
@@ -245,7 +255,19 @@ let rec update action state =
          |> Util.maybeMap (fun toolbox -> Toolbox.update msg toolbox)
      }
   | DismissToolbox tools ->
-     { state with toolbox = None }
+     let panel = 
+       { state.selected with
+         layout = 
+           tools
+           |> Map.toList
+           |> List.map Util.snd
+       }
+     in
+     { state with 
+       toolbox = None ; 
+       selected = panel ;
+       root = Panel.replace panel state.root
+     }
   | _ -> state
          
 let cssPixelPos v =

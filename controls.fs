@@ -175,9 +175,7 @@ let rec panelDisplayHierRow (html : Msg Html) state panel =
                  [
                    html.div
                      [html.className "panel-add-gadget"] 
-                     [
-                       
-                     ]
+                     [Html.onMouseClick html (fun evt -> GadgetPanel panel.id)]
                      [html.i [html.className "fa fa-link"] [] []]
                  ] ;
                  viewControls html state panel ;

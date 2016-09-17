@@ -100,3 +100,6 @@ let maybeSingleton v =
   match v with
   | None -> []
   | Some a -> [a]
+
+let fst (a,b) = a
+let snd (a,b) = b
