@@ -8,23 +8,20 @@ open Point
 open Panel
 open Gadget
 open Measure
+open GadgetImpl
 
 type Msg =
   | NoOp
+  | ToggleGadget of string
   | SelectGadgets of Set<string>
-
-type ToolId =
-  | EmptyChildListTool
-  | EmptyChildRowTool
-  | TextChildTool
 
 type ToolRender =
   FontAwesome of string
 
 type Tool =
   {
-    id : ToolId ;
-    render : ToolRender
+    render : ToolRender ;
+    gadget : Gadget<Panel,RenderMsg>
   }
 
 type State =
@@ -51,21 +48,14 @@ let create (tools : Gadget<Panel,RenderMsg> list) =
     original = included ;
     tools = 
       [
-        { id = EmptyChildListTool ;
-          render = FontAwesome "fa-columns" ;
-        } ;
-        { id = EmptyChildRowTool ;
-          render = FontAwesome "fa-list" ;
-        } ;
-        { id = TextChildTool ; 
-          render = FontAwesome "fa-newspaper-o" ;
+        { render = FontAwesome "fa-columns" ;
+          gadget = new FlexGadget(FlexRow, None)
+        }
+        { render = FontAwesome "fa-newspaper-o" ;
+          gadget = new TextGadget("Lorem ipsum dolor sit amet", None)
         }
       ]
   }
-
-let itemFromId tid toolbox =
-  toolbox.tools
-  |> List.filter (fun t -> t.id = tid)
 
 let itemFromCoords (at : Point) toolbox =
   let n = Util.ifloor ((at.y - 5.0) / 105.0) in
@@ -74,24 +64,39 @@ let itemFromCoords (at : Point) toolbox =
   else
     None
 
-let viewTool (html : Msg Html.Html) t =
+let viewTool (html : Msg Html.Html) toolbox t =
   let rendered =
     match t.render with
     | FontAwesome icon ->
        fontAwesomeRender icon html t
   in
-  html.div [html.className "toolbox-tool"] [] [ rendered ]
-
-let viewDragging (html : Msg Html.Html) tid toolbox =
-  toolbox
-  |> itemFromId tid
-  |> List.map (viewTool html)
+  let toolClass =
+    if Set.contains (t.gadget.name ()) toolbox.included then
+      "toolbox-tool toolbox-tool-selected"
+    else
+      "toolbox-tool"
+  in
+  html.div 
+    [html.className toolClass]
+    [Html.onMouseClick html (fun m -> ToggleGadget (t.gadget.name ()))]
+    [ rendered ; 
+      html.div
+        [ html.className "toolbox-label" ]
+        []
+        [ html.text (t.gadget.name ()) ]
+    ]
 
 let view (html : Msg Html.Html) tb =
   html.div
-    [html.className "toolbox"] [] 
-    (List.map (viewTool html) tb.tools)
+    [html.className "toolbox"] []
+    (List.map (viewTool html tb) tb.tools)
 
 let update msg tb =
-  tb
+  match msg with
+  | ToggleGadget g ->
+     if Set.contains g tb.included then
+       { tb with included = Set.remove g tb.included }
+     else
+       { tb with included = Set.add g tb.included }
+  | _ -> tb
 
