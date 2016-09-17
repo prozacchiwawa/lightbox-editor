@@ -77,6 +77,13 @@ let createTextEditor name value =
         ("numeric-input-good", "numeric-input-good")
       )
 
+let createNumEditor name value =
+  new InputEditor(
+        value, 
+        (fun value -> (Util.parseFloat value) <> None), 
+        ("numeric-input-good", "numeric-input-bad")
+      )
+
 type FlexGadget(flexDirection : FlexDirection, editors' : EditorSet option) =
   let editors = 
     editors'
@@ -136,11 +143,81 @@ type TextGadget(text : string, editors' : EditorSet option) =
          (fun lm e n v ->
            match n with
            | "text" -> 
-              new TextGadget(text, Some e)
+              new TextGadget(v, Some e)
            | _ -> self
          )
     member self.serialize panel =
       SerializeData.map 
         [ ("type", SerializeData.string "TextGadget") ;
           ("text", SerializeData.string text)
+        ]
+
+type SidebarGadget(split : float, editors' : EditorSet option) =
+  let editors =
+    editors'
+    |> Util.maybeWithDefault
+         (Input.init ()
+          |> Input.create "split" (createNumEditor "split" (Util.toString split))
+         )
+  in
+  interface Gadget<Panel, RenderMsg> with
+    member self.name () = "Sidebar"
+    member self.childStyles idx panel =
+      if idx = 0 then
+        [ ("display", "flex") ;
+          ("flex-shrink", "0.8") ;
+          ("flex-grow", "0.8")
+        ]
+      else
+        [ ("display", "flex") ;
+          ("flex-shrink", "0.2") ;
+          ("flex-grow", "0.2")
+        ]
+    member self.parentStyles panel = []
+    member self.modify panel =
+      { panel with
+        children =
+          match panel.children with
+          | [] -> 
+             [ 
+               { panel with 
+                 id = Util.genId () ;
+                 text = "" ;
+                 children = [] ;
+                 layout = []
+               } ;
+               { panel with
+                 id = Util.genId () ;
+                 text = "" ;
+                 children = [] ;
+                 layout = []
+               }
+             ]
+          | hd :: [] ->
+             [
+               hd ;
+               { panel with
+                 id = Util.genId () ;
+                 text = "" ;
+                 children = [] ;
+                 layout = []
+               }               
+             ]
+          | a :: b :: tl ->
+             [ a ; b ]
+      }
+    member self.view html panel = 
+      layoutMgrView editors html panel
+    member self.update msg =
+      layoutMgrUpdate msg editors self
+         (fun lm e n v ->
+           match (n, Util.parseFloat v) with
+           | ("split", Some f) -> 
+              new SidebarGadget(f, Some e)
+           | _ -> self
+         )
+    member self.serialize panel =
+      SerializeData.map 
+        [ ("type", SerializeData.string "TextGadget") ;
+          ("split", SerializeData.num split)
         ]

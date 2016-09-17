@@ -47,11 +47,14 @@ let create (tools : Gadget<Panel,RenderMsg> list) =
     original = included ;
     tools = 
       [
-        { render = FontAwesome "fa-columns" ;
+        { render = FontAwesome "fa-wrench" ;
           gadget = new FlexGadget(FlexRow, None)
-        }
+        } ;
         { render = FontAwesome "fa-newspaper-o" ;
           gadget = new TextGadget("Lorem ipsum dolor sit amet", None)
+        } ;
+        { render = FontAwesome "fa-columns" ;
+          gadget = new SidebarGadget(100.0, None)
         }
       ]
   }

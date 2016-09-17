@@ -157,6 +157,20 @@ let rec update action state =
              panel state.root state.ui 
        }
   in
+  let updateWithGadgets panel =
+    List.fold
+      (fun (p : Panel) (g : Gadget<Panel,RenderMsg>) -> g.modify p)
+      panel
+      panel.layout
+  in
+  let updateSelectedPanel state =
+    let panel = updateWithGadgets state.selected in
+    { state with 
+      selected = panel ; 
+      root = Panel.replace panel state.root ;
+      dirtyPanels = true
+    }
+  in
   let handleMouseEvent evt =
     let report = DragController.update evt state state.dragger in
     let newState = { state with dragger = report.dragger } in
@@ -235,19 +249,23 @@ let rec update action state =
      in
      { s0 with
        toolbox = Some (Toolbox.create state.selected.layout)
-     }
+     } 
+     |> updateSelectedPanel
   | ControlMsg msg ->
      let s0 = { state with ui = Controls.update msg state.ui } in
      let s1 = { s0 with grid = s0.ui.grid } in
-     if s1.ui.dirtyPanel then
-       let (panel,ui) = Controls.takeUpdate s1.ui in
-       { s1 with 
-         ui = ui ; 
-         root = Panel.replace panel s1.root ; 
-         dirtyPanels = true 
-       }
-     else
-       s1
+     let s2 = 
+       if s1.ui.dirtyPanel then
+         let (panel,ui) = Controls.takeUpdate s1.ui in
+         { s1 with 
+           ui = ui ; 
+           root = Panel.replace panel s1.root ; 
+           dirtyPanels = true 
+         }
+       else
+         s1
+     in
+     s2 |> updateSelectedPanel
   | ToolboxMsg msg ->
      { state with
        toolbox =
@@ -267,7 +285,7 @@ let rec update action state =
        toolbox = None ; 
        selected = panel ;
        root = Panel.replace panel state.root
-     }
+     } |> updateSelectedPanel
   | _ -> state
          
 let cssPixelPos v =
