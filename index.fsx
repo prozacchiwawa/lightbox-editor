@@ -45,7 +45,6 @@ type MeasureMsg = Measure.MeasureMsg
 type Color = { r : int ; b : int ; g : int ; a : int }
                
 type DragTarget =
-  | ToolId of Toolbox.ToolId
   | Panel of string
 
 type Msg = 
@@ -67,6 +66,7 @@ type Msg =
   | DragMove of (Point * Point * DragTarget option * DragTarget)
   | DragEnd of (Point * Point * DragTarget option * DragTarget)
   | DraggerClick of (Point * DragTarget)
+  | DismissToolbox of (Set<string>)
 
 type DragViz =
   {
@@ -90,25 +90,18 @@ type State =
     measure : MeasureMsg ;
     inactivityTimerId : int ;
     localStorage : Storage.Storage ;
-    toolbox : Toolbox.State ;
+    toolbox : Toolbox.State option ;
     dragViz : DragViz option ;
   }
 
 let findDraggableSubject (pt : Point) state =
   let rdim : TextRectangle = 
     DOM.getBoundingClientRect "canvas-frame" in
-  let panelFromPt = 
-    state.measure.data 
-    |> Measure.fromCoord (Point.ctor (pt.x - rdim.left) (pt.y - rdim.top))
-    |> List.map (fun i -> Some (Panel i.key))
-    |> Util.headWithDefault None
-  in
-  let _ = Util.expose "rdim" rdim in
-  state.toolbox
-  |> Toolbox.itemFromCoords pt
-  |> Util.maybeMap (fun i -> Some (ToolId i.id))
-  |> Util.maybeWithDefault panelFromPt
-
+  state.measure.data 
+  |> Measure.fromCoord (Point.ctor (pt.x - rdim.left) (pt.y - rdim.top))
+  |> List.map (fun i -> Some (Panel i.key))
+  |> Util.headWithDefault None
+                            
 let init arg =
   let root = 
     { 
@@ -141,7 +134,7 @@ let init arg =
     measure = Measure.emptyMeasure ;
     inactivityTimerId = -1 ;
     localStorage = new LocalStorage.LocalStorage() :> Storage.Storage ;
-    toolbox = Toolbox.create () ;
+    toolbox = None ;
     dragViz = None ;
   }
 
@@ -202,19 +195,6 @@ let rec update action state =
              target = tgt
            }
      }
-  | DragEnd (st,pt,Some (Panel id),ToolId sub) -> 
-     let viz = state.dragViz in
-     let stateWithoutViz = { state with dragViz = None } in
-     viz
-     |> Util.maybeMap 
-          (fun dv ->
-            stateWithoutViz.root
-            |> Panel.fromId id
-            |> List.map (fun p -> Toolbox.applyTool stateWithoutViz.toolbox sub p stateWithoutViz.root)
-            |> List.map (fun p -> { stateWithoutViz with dirtyPanels = true ; root = p })
-            |> Util.headWithDefault stateWithoutViz
-          )
-     |> Util.maybeWithDefault stateWithoutViz
   | DragEnd (st,pt,_,_) ->
      { state with dragViz = None }
   | DraggerClick (st,sub) ->
@@ -241,6 +221,11 @@ let rec update action state =
        |> (Util.flip selectPanel) state
      in
      { reselect with root = Panel.remove pid state.root ; dirtyPanels = true }
+  (* Open the gadgets pane *)
+  | ControlMsg (Controls.GadgetPanel pid) -> 
+     { state with
+       toolbox = Some (Toolbox.create state.selected.layout)
+     }
   | ControlMsg msg ->
      let s0 = { state with ui = Controls.update msg state.ui } in
      let s1 = { s0 with grid = s0.ui.grid } in
@@ -253,6 +238,14 @@ let rec update action state =
        }
      else
        s1
+  | ToolboxMsg msg ->
+     { state with
+       toolbox =
+         state.toolbox
+         |> Util.maybeMap (fun toolbox -> Toolbox.update msg toolbox)
+     }
+  | DismissToolbox tools ->
+     { state with toolbox = None }
   | _ -> state
          
 let cssPixelPos v =
@@ -318,21 +311,6 @@ let view (html : Msg Html.Html) state =
       | Some dv ->
          match dv.subject with
          | Panel p -> [ html.div [] [] [] ]
-         | ToolId t ->
-            [
-              html.div 
-                [
-                  html.className "dragger-display" ;
-                  html.style
-                    [
-                      ("position", "absolute") ;
-                      ("left", String.concat "" [Util.toString dv.endAt.x; "px"]) ;
-                      ("top", String.concat "" [Util.toString dv.endAt.y; "px"])
-                    ]
-                ] 
-                [] 
-                (Toolbox.viewDragging (Html.map (fun m -> ToolboxMsg m) html) (Util.expose "t" t) state.toolbox)
-            ]
     in
     [ html.div [html.className "dragger-container"] [] dragChild ]
   in
@@ -363,9 +341,6 @@ let view (html : Msg Html.Html) state =
     ]
     (List.concat 
        [
-         [
-           Toolbox.view (Html.map (fun m -> ToolboxMsg m) html) state.toolbox
-         ] ;
          [ 
            html.div
              [html.className "root-container"] []
@@ -397,6 +372,44 @@ let view (html : Msg Html.Html) state =
                     ]
                  )
              ] ;
+         ] ;
+         [state.toolbox
+          |> Util.maybeMap 
+               (fun toolbox ->
+                 html.div
+                   [html.className "toolbox-modal-overlay"] []
+                   [
+                     html.div
+                       [html.className "toolbox-view"] []
+                       [ Toolbox.view 
+                           (Html.map (fun m -> ToolboxMsg m) html) toolbox ;
+                         html.div
+                           [html.className "toolbox-controls"] []
+                           [
+                             html.button
+                               [html.className "toolbox-controls-button"] 
+                               [
+                                 Html.onMouseClick 
+                                   html
+                                   (fun evt -> 
+                                     DismissToolbox toolbox.original)
+                               ]
+                               [html.text "Cancel"] ;
+                             html.button
+                               [html.className "toolbox-controls-button"] 
+                               [
+                                 Html.onMouseClick
+                                   html
+                                   (fun evt ->
+                                     DismissToolbox toolbox.included)
+                               ]
+                               [html.text "Update"]
+                           ]
+                       ]
+                   ]
+               )
+          |> Util.maybeWithDefault
+               (html.div [html.className "toolbox-modal-hidden"] [] [])
          ] ;
          dragViz ;
          Controls.view controlHtml state.ui ;

@@ -20,6 +20,7 @@ type Msg =
   | TogglePanel of (string * bool)
   | SetGrid of Grid
   | DeletePanel of string
+  | GadgetPanel of string
   | GadgetMsg of (string * string * Gadget.Msg)
 
 type EditPane =
@@ -171,6 +172,14 @@ let rec panelDisplayHierRow (html : Msg Html) state panel =
          (if panelOpen then
             (List.concat
                [
+                 [
+                   html.div
+                     [html.className "panel-add-gadget"] 
+                     [
+                       
+                     ]
+                     [html.i [html.className "fa fa-link"] [] []]
+                 ] ;
                  viewControls html state panel ;
                  panel.children
                  |> List.rev
@@ -178,7 +187,12 @@ let rec panelDisplayHierRow (html : Msg Html) state panel =
                ]
             )
           else
-            []
+            [
+              html.div
+                [html.className "panel-add-gadget"] 
+                [Html.onMouseClick html (fun evt -> GadgetPanel panel.id)]
+                [html.i [html.className "fa fa-link"] [] []]
+            ]
          )
        ]
     )

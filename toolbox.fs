@@ -6,9 +6,12 @@ module Toolbox
 open DomUnits
 open Point
 open Panel
+open Gadget
+open Measure
 
 type Msg =
   | NoOp
+  | SelectGadgets of Set<string>
 
 type ToolId =
   | EmptyChildListTool
@@ -22,12 +25,13 @@ type Tool =
   {
     id : ToolId ;
     render : ToolRender
-    apply : Tool -> Panel -> Panel -> Panel ;
   }
 
 type State =
   {
-    tools : Tool list 
+    tools : Tool list ;
+    included : Set<string> ;
+    original : Set<string>
   }
 
 let fontAwesomeRender icon (html : Msg Html.Html) t =
@@ -36,58 +40,26 @@ let fontAwesomeRender icon (html : Msg Html.Html) t =
       html.attribute "aria-hidden" "true"] 
     [] []
 
-let create _ =
-  let newPanel =
-    {
-      id = "" ;
-      text = "" ;
-      children = [] ;
-      layout = []
-    }
+let create (tools : Gadget<Panel,RenderMsg> list) =
+  let included =
+    tools
+    |> List.map (fun t -> t.name ())
+    |> Set<string>
   in
   { 
+    included = included ;
+    original = included ;
     tools = 
       [
         { id = EmptyChildListTool ;
           render = FontAwesome "fa-columns" ;
-          apply = 
-            fun tool panel root ->
-            let p =
-              { newPanel with
-                id = Util.genId() ;
-                layout =
-                  [
-                    GadgetImpl.FlexGadget(GadgetImpl.FlexColumn, None)
-                  ]
-              }
-            in
-            { panel with children = List.concat [panel.children;[p]] }
         } ;
         { id = EmptyChildRowTool ;
           render = FontAwesome "fa-list" ;
-          apply = 
-            fun tool panel root -> 
-            let p = 
-              { newPanel with
-                id = Util.genId() ;
-                layout =
-                  [
-                    GadgetImpl.FlexGadget(GadgetImpl.FlexRow, None)
-                  ]
-              }
-            in
-            { panel with children = List.concat [panel.children;[p]] }
         } ;
         { id = TextChildTool ; 
           render = FontAwesome "fa-newspaper-o" ;
-          apply = 
-            fun tool panel root ->
-            { panel with 
-              id = Util.genId() ;
-              text = "Lorem ipsum dolor sit amet" ;
-              children = List.concat [panel.children;[newPanel]] 
-            }
-        } ;
+        }
       ]
   }
 
@@ -123,8 +95,3 @@ let view (html : Msg Html.Html) tb =
 let update msg tb =
   tb
 
-let applyTool toolbox tid panel root =
-  toolbox.tools
-  |> List.filter (fun t -> t.id = tid)
-  |> List.map (fun t -> Panel.replace (t.apply t panel root) root)
-  |> Util.headWithDefault panel

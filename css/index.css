@@ -19,7 +19,7 @@ body {
 .root-container {
     position: absolute;
     overflow: hidden;
-    left: 120px;
+    left: 0;
     top: 0;
     width: 1000px;
     bottom: 0;
@@ -133,6 +133,7 @@ body {
     transition: width 0.3s;
     transition: background-color: 0.3s;
     z-index: 4;
+    margin-top: 5vmin;
 }
 
 .control-closed {
@@ -149,6 +150,7 @@ body {
     transition: width 0.3s;
     transition: background-color: 0.3s;
     z-index: 2;
+    margin-top: 5vmin;
 }
 
 .panel-selected.panel-selected {
@@ -200,16 +202,57 @@ body {
 }
 
 .toolbox {
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 100vh;
-    width: 110px;
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    width: 90%;
+    height: 90%;
+    flex-shrink: 1;
+    flex-grow: 1;
     background-color: #555;
     box-shadow: 0px 0px 7px #000000;
     margin-left: 5px;
     margin-right: 5px;
     overflow-y: auto;
+}
+
+.toolbox-view {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    width: 90%;
+    height: 90%;
+    flex-shrink: 1;
+    flex-grow: 1;
+    background-color: #555;
+    box-shadow: 0px 0px 7px #000000;
+    margin-left: 5px;
+    margin-right: 5px;
+    overflow-y: auto;
+}
+
+.toolbox-controls {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row-reverse;
+    width: 90%;
+    flex-shrink: 0;
+    flex-shrink: 0;
+}
+
+.toolbox-controls-button {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+    width: 15rem;
+    height: 2rem;
+    justify-content: center;
+    align-items: center;
+    margin-left: 1rem;
 }
 
 .toolbox-tool {
@@ -225,6 +268,28 @@ body {
     width: 100px;
     background-color: #575;
     box-shadow: 0px 3px 5px #000;
+}
+
+.panel-add-gadget {
+    display: inline-block;
+    float: right;
+}
+
+.toolbox-modal-overlay {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    left: 0;
+    top: 50px;
+    right: 350px;
+    bottom: 50px;
+    z-index: 4;
+    justify-content: center;
+    align-items: center;
+}
+
+.toolbox-modal-hidden {
+    display: none;
 }
 
 /* https://fonts.googleapis.com/css?family=Open+Sans:300 */
