@@ -55,6 +55,9 @@ let create (tools : Gadget<Panel,RenderMsg> list) =
         } ;
         { render = FontAwesome "fa-columns" ;
           gadget = new SidebarGadget(100.0, None)
+        } ;
+        { render = FontAwesome "fa-credit-card" ;
+          gadget = new HeaderGadget(50.0, None)
         }
       ]
   }

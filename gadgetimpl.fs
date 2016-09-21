@@ -15,6 +15,12 @@ type FlexDirection =
   | FlexColumn
   | FlexRow
 
+let updateWithGadgets panel =
+  List.fold
+    (fun (p : Panel) (g : Gadget<Panel,RenderMsg>) -> g.modify p)
+    panel
+    panel.layout
+
 let stringOfFlexDirection fd =
   match fd with
   | FlexColumn -> "column"
@@ -218,6 +224,76 @@ type SidebarGadget(split : float, editors' : EditorSet option) =
          )
     member self.serialize panel =
       SerializeData.map 
-        [ ("type", SerializeData.string "TextGadget") ;
+        [ ("type", SerializeData.string "SidebarGadget") ;
+          ("split", SerializeData.num split)
+        ]
+
+type HeaderGadget(split : float, editors' : EditorSet option) =
+  let editors =
+    editors'
+    |> Util.maybeWithDefault
+         (Input.init ()
+          |> Input.create "split" (createNumEditor "split" (Util.toString split))
+         )
+  in
+  interface Gadget<Panel, RenderMsg> with
+    member self.name () = "Header"
+    member self.childStyles idx panel =
+      if idx = 0 then
+        [ ("display", "flex") ;
+          ("flex-shrink", "0.8") ;
+          ("flex-grow", "0.8")
+        ]
+      else
+        [ ("display", "flex") ;
+          ("flex-shrink", "0.2") ;
+          ("flex-grow", "0.2")
+        ]
+    member self.parentStyles panel = []
+    member self.modify panel =
+      { panel with
+        children =
+          match panel.children with
+          | [] -> 
+             [ 
+               { panel with 
+                 id = Util.genId () ;
+                 text = "" ;
+                 children = [] ;
+                 layout = []
+               } ;
+               { panel with
+                 id = Util.genId () ;
+                 text = "" ;
+                 children = [] ;
+                 layout = []
+               }
+             ]
+          | hd :: [] ->
+             [
+               hd ;
+               { panel with
+                 id = Util.genId () ;
+                 text = "" ;
+                 children = [] ;
+                 layout = []
+               }               
+             ]
+          | a :: b :: tl ->
+             [ a ; b ]
+      }
+    member self.view html panel = 
+      layoutMgrView editors html panel
+    member self.update msg =
+      layoutMgrUpdate msg editors self
+         (fun lm e n v ->
+           match (n, Util.parseFloat v) with
+           | ("split", Some f) -> 
+              new HeaderGadget(f, Some e)
+           | _ -> self
+         )
+    member self.serialize panel =
+      SerializeData.map 
+        [ ("type", SerializeData.string "HeaderGadget") ;
           ("split", SerializeData.num split)
         ]

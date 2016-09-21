@@ -1,6 +1,6 @@
 JS_SOURCES=$(wildcard js/*interface.js) $(wildcard js/*.prog.js)
 
-all: out/index.js out/child.js out/storagetestprog.js out/ziptestprog.js out/jsontestprog.js out/dragtestprog.js
+all: out/index.js out/child.js out/storagetestprog.js out/ziptestprog.js out/jsontestprog.js out/dragtestprog.js out/paneltestprog.js
 
 clean:
 	rm -rf out js/fs
@@ -23,6 +23,9 @@ js/fs/jsontest.js: jsontest.fsx *.fs
 js/fs/dragtest.js: dragtest.fsx *.fs
 	fable --projFile dragtest.fsx --outDir js/fs
 
+js/fs/paneltest.js: paneltest.fsx *.fs
+	fable --projFile paneltest.fsx --outDir js/fs
+
 js/fs/index.js: index.fsx *.fs
 	fable --projFile $< --outDir js/fs
 
@@ -43,3 +46,6 @@ out/jsontestprog.js: out js/jsontestprog.js js/fs/jsontest.js $(JS_SOURCES)
 
 out/dragtestprog.js: out js/dragtestprog.js js/fs/dragtest.js $(JS_SOURCES)
 	browserify -e js/dragtestprog.js -o $@
+
+out/paneltestprog.js: out js/paneltestprog.js js/fs/paneltest.js $(JS_SOURCES)
+	browserify -e js/paneltestprog.js -o $@

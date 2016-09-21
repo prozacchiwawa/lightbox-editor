@@ -17,13 +17,6 @@ type Panel =
     children : Panel list ;
     layout : Gadget.Gadget<Panel,Measure.RenderMsg> list
   }
-       
-let dummy =
-  { id = "" ;
-    text = "Dummy content" ;
-    children = [] ;
-    layout = []
-  }
 
 let rec fromId id panel =
   let matchingChildPanels =

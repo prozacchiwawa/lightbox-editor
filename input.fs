@@ -66,6 +66,32 @@ type InputSelector(currentValue : string, valueList : Set<string>) =
             )
         ]
 
+type InputRange(currentValue : string, minValue : float option, maxValue : float option, step : float option, renderClass : string) =
+  interface EditorInstance with
+    member self.currentValue () = currentValue
+    member self.update sv = 
+      new InputRange(sv, minValue, maxValue, step, renderClass) :> EditorInstance
+    member self.good str = Util.parseFloat str <> None
+    member self.view html name =
+        let maybeAttributeList name ma =
+          ma 
+          |> Util.maybeMap (fun v -> {name=name; value=Util.toString v})
+          |> Util.maybeSingleton
+        in
+        html.div
+          (List.concat
+             [
+               [ html.className renderClass ;
+                 {name="type"; value="range"}; 
+               ] ;
+               step |> maybeAttributeList "step" ;
+               minValue |> maybeAttributeList "min" ;
+               maxValue |> maybeAttributeList "max"
+             ]
+          )
+          [Html.onInput html (fun evt -> InputValueChanged (name, evt.target.value))]
+          []
+
 type Checkbox(currentValue : string) =
   interface EditorInstance with
     member self.currentValue () = currentValue
@@ -73,7 +99,7 @@ type Checkbox(currentValue : string) =
     member self.good str = str = "true" || str = "false"
     member self.view html name =
         html.div
-          [html.className "check-container"]
+          [html.className "check-class"]
           [Html.onMouseClick html (fun evt -> InputValueChanged (name, (if currentValue = "false" then "true" else "false")))]
           [
             (if currentValue = "false" then

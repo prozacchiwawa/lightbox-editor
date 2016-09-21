@@ -11,7 +11,6 @@ open Measure
 let rec save panel =
   map
     [ ("id", string panel.id) ;
-      ("text", string panel.text) ;
       ("children", list (List.map save panel.children)) ;
       ("layout", list (List.map (fun (l : Gadget<Panel,RenderMsg>) -> l.serialize panel) panel.layout))
     ]
@@ -32,8 +31,6 @@ let rec load ser =
          match (key,v) with
          | ("id",String id) ->
             { panel with id = id }
-         | ("text",String text) ->
-            { panel with text = text }
          | ("children",List l) ->
             { panel with children = List.map load l }
          | ("layout",List l) ->
@@ -41,5 +38,6 @@ let rec load ser =
          | _ -> panel)
        emptyPanel
        d
+     |> updateWithGadgets
   | _ -> emptyPanel
 

@@ -157,14 +157,8 @@ let rec update action state =
              panel state.root state.ui 
        }
   in
-  let updateWithGadgets panel =
-    List.fold
-      (fun (p : Panel) (g : Gadget<Panel,RenderMsg>) -> g.modify p)
-      panel
-      panel.layout
-  in
   let updateSelectedPanel state =
-    let panel = updateWithGadgets state.selected in
+    let panel = GadgetImpl.updateWithGadgets state.selected in
     { state with 
       selected = panel ; 
       root = Panel.replace panel state.root ;
