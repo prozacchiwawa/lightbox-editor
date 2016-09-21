@@ -29,6 +29,11 @@ let loadHeaderGadget d =
   | Some (Float f) -> new HeaderGadget(f, None)
   | None -> new HeaderGadget(50.0, None)
 
+let loadPaddingGadget d =
+  match Map.tryFind "padding" d with
+  | Some (Float f) -> new PaddingGadget(f, None)
+  | None -> new PaddingGadget(5.0, None)
+
 let load serialized =
   let cast gadget = gadget :> Gadget<Panel,RenderMsg> in 
   match serialized with
@@ -41,6 +46,8 @@ let load serialized =
          loadSidebarGadget d |> cast
       | Some (String "HeaderGadget") ->
          loadHeaderGadget d |> cast
+      | Some (String "PaddingGadget") ->
+         loadPaddingGadget d |> cast
       | _ (*Some (String "TextGadget")*) -> 
          loadTextGadget d |> cast
      )

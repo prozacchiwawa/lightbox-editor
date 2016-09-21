@@ -58,6 +58,9 @@ let create (tools : Gadget<Panel,RenderMsg> list) =
         } ;
         { render = FontAwesome "fa-credit-card" ;
           gadget = new HeaderGadget(50.0, None)
+        } ;
+        { render = FontAwesome "fa-server" ;
+          gadget = new PaddingGadget(5.0, None)
         }
       ]
   }

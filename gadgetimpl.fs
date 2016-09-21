@@ -297,3 +297,36 @@ type HeaderGadget(split : float, editors' : EditorSet option) =
         [ ("type", SerializeData.string "HeaderGadget") ;
           ("split", SerializeData.num split)
         ]
+
+type PaddingGadget(padding : float, editors' : EditorSet option) =
+  let editors =
+    editors'
+    |> Util.maybeWithDefault
+         (Input.init ()
+          |> Input.create "padding" (createNumEditor "padding" (Util.toString padding))
+         )
+  in
+  interface Gadget<Panel, RenderMsg> with
+    member self.name () = "Padding"
+    member self.childStyles idx panel = []
+    member self.parentStyles panel =
+      [
+        ("padding", String.concat "" [Util.toString padding; "px"])
+      ]
+    member self.modify panel =
+      panel
+    member self.view html panel = 
+      layoutMgrView editors html panel
+    member self.update msg =
+      layoutMgrUpdate msg editors self
+         (fun lm e n v ->
+           match (n, Util.parseFloat v) with
+           | ("padding", Some f) -> 
+              new PaddingGadget(f, Some e)
+           | _ -> self
+         )
+    member self.serialize panel =
+      SerializeData.map 
+        [ ("type", SerializeData.string "PaddingGadget") ;
+          ("padding", SerializeData.num padding)
+        ]
