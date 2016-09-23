@@ -330,3 +330,36 @@ type PaddingGadget(padding : float, editors' : EditorSet option) =
         [ ("type", SerializeData.string "PaddingGadget") ;
           ("padding", SerializeData.num padding)
         ]
+
+type MarginGadget(margin : float, editors' : EditorSet option) =
+  let editors =
+    editors'
+    |> Util.maybeWithDefault
+         (Input.init ()
+          |> Input.create "margin" (createNumEditor "margin" (Util.toString margin))
+         )
+  in
+  interface Gadget<Panel, RenderMsg> with
+    member self.name () = "Margin"
+    member self.childStyles idx panel = []
+    member self.parentStyles panel =
+      [
+        ("margin", String.concat "" [Util.toString margin; "px"])
+      ]
+    member self.modify panel =
+      panel
+    member self.view html panel = 
+      layoutMgrView editors html panel
+    member self.update msg =
+      layoutMgrUpdate msg editors self
+         (fun lm e n v ->
+           match (n, Util.parseFloat v) with
+           | ("margin", Some f) -> 
+              new MarginGadget(f, Some e)
+           | _ -> self
+         )
+    member self.serialize panel =
+      SerializeData.map 
+        [ ("type", SerializeData.string "MarginGadget") ;
+          ("margin", SerializeData.num margin)
+        ]

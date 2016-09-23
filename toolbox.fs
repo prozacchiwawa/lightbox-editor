@@ -27,6 +27,7 @@ type Tool =
 type State =
   {
     tools : Tool list ;
+    pid : string ;
     included : Map<string, Gadget<Panel,RenderMsg> > ;
     original : Map<string, Gadget<Panel,RenderMsg> >
   }
@@ -37,7 +38,7 @@ let fontAwesomeRender icon (html : Msg Html.Html) t =
       html.attribute "aria-hidden" "true"] 
     [] []
 
-let create (tools : Gadget<Panel,RenderMsg> list) =
+let create (pid : string) (tools : Gadget<Panel,RenderMsg> list) =
   let included = 
     new Map<string, Gadget<Panel, RenderMsg> >
       (List.map (fun (t : Gadget<Panel,RenderMsg>) -> (t.name (), t)) tools)
@@ -45,6 +46,7 @@ let create (tools : Gadget<Panel,RenderMsg> list) =
   { 
     included = included ;
     original = included ;
+    pid = pid ;
     tools = 
       [
         { render = FontAwesome "fa-wrench" ;
@@ -61,6 +63,9 @@ let create (tools : Gadget<Panel,RenderMsg> list) =
         } ;
         { render = FontAwesome "fa-server" ;
           gadget = new PaddingGadget(5.0, None)
+        } ;
+        { render = FontAwesome "fa-arrows-alt" ;
+          gadget = new MarginGadget(5.0, None)
         }
       ]
   }

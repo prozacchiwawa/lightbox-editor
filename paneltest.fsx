@@ -10,6 +10,7 @@ open Fable.Import.Browser
 #load "grid.fs"
 #load "vdom.fs"
 #load "html.fs"
+#load "stopmouse.fs"
 #load "serializedata.fs"
 #load "css.fs"
 #load "gridrenderer.fs"

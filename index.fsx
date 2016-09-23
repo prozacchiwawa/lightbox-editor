@@ -10,6 +10,7 @@ open Fable.Import.Browser
 #load "grid.fs"
 #load "vdom.fs"
 #load "html.fs"
+#load "stopmouse.fs"
 #load "serializedata.fs"
 #load "css.fs"
 #load "gridrenderer.fs"
@@ -35,6 +36,7 @@ open Q
 open DomUnits
 open Measure
 open Gadget
+open StopMouse
 
 type Point = Point.Point
 type Panel = Panel.Panel
@@ -66,7 +68,7 @@ type Msg =
   | DragMove of (Point * Point * DragTarget option * DragTarget)
   | DragEnd of (Point * Point * DragTarget option * DragTarget)
   | DraggerClick of (Point * DragTarget)
-  | DismissToolbox of (Map<string, Gadget<Panel,RenderMsg> >)
+  | DismissToolbox of (string * Map<string, Gadget<Panel,RenderMsg> >)
 
 type DragViz =
   {
@@ -80,7 +82,6 @@ type State =
   { 
     palette : Map<string, Color> ;
     root : Panel ;
-    dirtyPanels : bool ;
     selected : Panel ;
     backgroundUrl : string ;
     opacity : float ;
@@ -118,7 +119,6 @@ let init arg =
     backgroundUrl = "" ;
     opacity = 0.4 ;
     root = root ;
-    dirtyPanels = false ; 
     dragger = 
       { DragController.emptyDragController NoOp with
         getSubject = (fun pt state -> findDraggableSubject pt state) ;
@@ -146,25 +146,6 @@ let save state =
   |> SerializeData.map
 
 let rec update action state =
-  let selectPanel (panel : Panel) state =
-    match state.toolbox with
-    | Some _ -> state
-    | None ->
-       { state with 
-         selected = panel ; 
-         ui = 
-           Controls.select 
-             panel state.root state.ui 
-       }
-  in
-  let updateSelectedPanel state =
-    let panel = GadgetImpl.updateWithGadgets state.selected in
-    { state with 
-      selected = panel ; 
-      root = Panel.replace panel state.root ;
-      dirtyPanels = true
-    }
-  in
   let handleMouseEvent evt =
     let report = DragController.update evt state state.dragger in
     let newState = { state with dragger = report.dragger } in
@@ -214,72 +195,91 @@ let rec update action state =
        | Panel id ->
           stateWithoutViz.root
           |> Panel.fromId id
-          |> List.map (fun panel -> selectPanel panel stateWithoutViz)
+          |> List.map 
+               (fun panel ->
+                 { stateWithoutViz with
+                   selected = panel ;
+                   ui = 
+                     { stateWithoutViz.ui with
+                       focused = panel
+                     }
+                 }
+               )
           |> Util.headWithDefault stateWithoutViz
        | _ -> stateWithoutViz
   | ControlMsg (Controls.ChangeBackground bg) ->
      { state with backgroundUrl = Util.log "Background" bg }
-  | ControlMsg (Controls.SelectPanel pid) ->
+  | ControlMsg (Controls.GadgetPanel pid) ->
      state.root
      |> Panel.fromId pid
-     |> Util.headWithDefault state.root
-     |> (Util.flip selectPanel) state
-  | ControlMsg (Controls.DeletePanel pid) ->
-     let reselect = 
-       state.root
-       |> Panel.parent pid state.root
-       |> Util.headWithDefault state.root
-       |> (Util.flip selectPanel) state
-     in
-     { reselect with root = Panel.remove pid state.root ; dirtyPanels = true }
-  (* Open the gadgets pane *)
-  | ControlMsg (Controls.GadgetPanel pid) -> 
-     let s0 = 
-       selectPanel 
-         (state.root
-          |> Panel.fromId pid
-          |> Util.headWithDefault state.selected)
-         state
-     in
-     { s0 with
-       toolbox = Some (Toolbox.create state.selected.layout)
-     } 
-     |> updateSelectedPanel
+     |> List.map
+          (fun panel ->
+            let c0 = 
+              { state.ui with
+                grid = state.grid ;
+                root = state.root ;
+                focused = panel
+              }
+              |> Controls.update (Controls.GadgetPanel pid)
+            in
+            { state with 
+              ui = c0 ;
+              grid = c0.grid ;
+              root = c0.root |> Panel.replace c0.focused ;
+              selected = c0.focused ;
+              toolbox = Some (Toolbox.create panel.id panel.layout)
+            }
+          )
+     |> Util.headWithDefault state
   | ControlMsg msg ->
-     let s0 = { state with ui = Controls.update msg state.ui } in
-     let s1 = { s0 with grid = s0.ui.grid } in
-     let s2 = 
-       if s1.ui.dirtyPanel then
-         let (panel,ui) = Controls.takeUpdate s1.ui in
-         { s1 with 
-           ui = ui ; 
-           root = Panel.replace panel s1.root ; 
-           dirtyPanels = true 
-         }
-       else
-         s1
+     let c0 = 
+       { state.ui with
+         grid = state.grid ;
+         root = state.root ;
+         focused = state.selected
+       }
+       |> Controls.update msg
      in
-     s2 |> updateSelectedPanel
+     { state with 
+       ui = c0
+       grid = c0.grid ;
+       root = c0.root |> Panel.replace c0.focused ;
+       selected = c0.focused
+     }
+  | DismissToolbox (pid, gadgets) ->
+     state.root
+     |> Panel.fromId pid
+     |> List.map 
+          (fun p ->
+            let panel =
+              { p with
+                layout =
+                  gadgets 
+                  |> Map.toList 
+                |> List.map snd
+              }
+            in
+            let root = Panel.replace panel state.root in
+            let c0 =
+              { state.ui with
+                root = root ;
+                focused = panel
+              }
+            in
+            { state with
+              ui = c0 ;
+              root = root ;
+              selected = panel ;
+              toolbox = None
+            }
+          )
+     |> Util.headWithDefault state
   | ToolboxMsg msg ->
      { state with
        toolbox =
          state.toolbox
          |> Util.maybeMap (fun toolbox -> Toolbox.update msg toolbox)
      }
-  | DismissToolbox tools ->
-     let panel = 
-       { state.selected with
-         layout = 
-           tools
-           |> Map.toList
-           |> List.map Util.snd
-       }
-     in
-     { state with 
-       toolbox = None ; 
-       selected = panel ;
-       root = Panel.replace panel state.root
-     } |> updateSelectedPanel
   | _ -> state
          
 let cssPixelPos v =
@@ -414,7 +414,8 @@ let view (html : Msg Html.Html) state =
                    [html.className "toolbox-modal-overlay"] []
                    [
                      html.div
-                       [html.className "toolbox-view"] []
+                       [html.className "toolbox-view"] 
+                       (stopMouse html NoOp)
                        [ Toolbox.view 
                            (Html.map (fun m -> ToolboxMsg m) html) toolbox ;
                          html.div
@@ -425,8 +426,10 @@ let view (html : Msg Html.Html) state =
                                [
                                  Html.onMouseClick 
                                    html
-                                   (fun evt -> 
-                                     DismissToolbox toolbox.original)
+                                   (fun evt ->
+                                     DismissToolbox
+                                       (state.selected.id, toolbox.original)
+                                   )
                                ]
                                [html.text "Cancel"] ;
                              html.button
@@ -435,7 +438,9 @@ let view (html : Msg Html.Html) state =
                                  Html.onMouseClick
                                    html
                                    (fun evt ->
-                                     DismissToolbox toolbox.included)
+                                     DismissToolbox
+                                       (state.selected.id, toolbox.included)
+                                   )
                                ]
                                [html.text "Update"]
                            ]
@@ -460,7 +465,16 @@ let combineWithState subkey state =
          | ("opacity",SerializeData.Float n) ->
             { state with opacity = n }
          | ("root",root) ->
-            { state with root = PanelSerialize.load root ; dirtyPanels = true }
+            let loaded = PanelSerialize.load root in
+            { state with 
+              root = loaded ;
+              selected = loaded ;
+              ui = 
+                { state.ui with 
+                  root = loaded ;
+                  focused = loaded
+                }
+            }
          | _ -> state
       )
       state m
@@ -499,16 +513,18 @@ let rec renderPanelToMeasure
     panel
 
 let pushUpdate state =
-  VDom.postIFrameMessage 
-    "canvas-frame"
-    (renderPanelToMeasure
-       (fun p -> p.layout)
-       (fun sty children panel -> MeasureRender.render sty children panel)
-       []
-       state.root
-    ) ;
-  { state with dirtyPanels = false }
-             
+  begin
+    VDom.postIFrameMessage 
+      "canvas-frame"
+      (renderPanelToMeasure
+         (fun p -> p.layout)
+         (fun sty children panel -> MeasureRender.render sty children panel)
+         []
+         state.root
+      ) ;
+    state
+  end
+    
 let clearTimeout state =
   let _ = Timer.clearTimeout state.inactivityTimerId in
   { state with inactivityTimerId = -1 }
@@ -556,13 +572,7 @@ let updateAndEmit post msg state =
     | LoadAutosave -> st
     | Rerender -> pushUpdate st
     | _ ->
-       begin
-         Util.log "visualUpdate" (st.dirtyPanels, msg) ;
-         if st.dirtyPanels then
-           pushUpdate st
-         else
-           st
-       end
+       pushUpdate st
   end
 
 let main (vdom : Msg VDom.VDom) arg =

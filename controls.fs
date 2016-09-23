@@ -7,6 +7,7 @@ open Panel
 open Input
 open Measure
 open Gadget
+open StopMouse
 
 type Grid = Grid.Grid
 type Panel = Panel.Panel
@@ -36,7 +37,6 @@ type UI =
     backgroundUrl : string ;
     root : Panel ;
     focused : Panel ;
-    dirtyPanel : bool ;
     openPanels : Set<string> ;
     panelEditors : Map<string, EditPane> ;
     grid : Grid
@@ -47,17 +47,9 @@ let init grid panel =
     backgroundUrl = "" ;
     root = panel ;
     focused = panel ; 
-    dirtyPanel = false ;
     openPanels = Set<string> [] ;
     panelEditors = Map<string, EditPane> [] ;
     grid = grid
-  }
-
-let select panel root state =
-  let _ = Util.log "Controls.select with" (panel.id, root.id) in
-  { state with 
-    focused = panel ; 
-    root = root 
   }
 
 let dropEditor state pid =
@@ -98,15 +90,18 @@ let update action state =
        }
      in
      Panel.fromId n state.root 
-       |> List.map updatedPanel
-       |> List.map
-            (fun p ->
-              { state with
-                dirtyPanel = true ;
-                root = Panel.replace p state.root
-              }
-            )
-       |> Util.headWithDefault state
+     |> List.map updatedPanel
+     |> List.map
+          (fun p ->
+            { state with
+              root = Panel.replace p state.root
+            }
+          )
+     |> Util.headWithDefault state
+  | SelectPanel id ->
+     Panel.fromId id state.root
+     |> List.map (fun p -> { state with focused = p })
+     |> Util.headWithDefault state
   | _ -> state
 
 let labeledInput html f name (inp : Input.EditorInstance) =
@@ -229,7 +224,7 @@ let view (html : Msg Html) state =
       [ 
         html.div 
           [html.className "control-width"]
-          []
+          (stopMouse html NoOp)
           (List.concat 
              [ 
                [ panelDisplayHierRow html state state.root ]
@@ -237,6 +232,3 @@ let view (html : Msg Html) state =
           )
       ]
   ]
-
-let takeUpdate state =
-  (state.focused, { state with dirtyPanel = false })
